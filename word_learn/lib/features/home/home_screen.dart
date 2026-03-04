@@ -6,6 +6,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
+import '../../shared/state/active_batch_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/session_provider.dart';
 
@@ -16,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final onboarding = ref.watch(onboardingProvider);
+    final batchCount = ref.watch(activeBatchProvider).length;
     final curfewStr =
         '${onboarding.curfew.hour.toString().padLeft(2, '0')}:${onboarding.curfew.minute.toString().padLeft(2, '0')}';
 
@@ -40,7 +42,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             SizedBox(height: AppSpacing.lg),
             Text(
-              '0 words due for review',
+              '$batchCount words in batch',
               style: AppTypography.bodyLarge.copyWith(
                 color: AppColors.mediumGray,
               ),
@@ -66,6 +68,11 @@ class HomeScreen extends ConsumerWidget {
                 context.go(AppRoutes.session);
               },
               child: const Text('START SESSION'),
+            ),
+            SizedBox(height: AppSpacing.md),
+            OutlinedButton(
+              onPressed: () => context.go(AppRoutes.batch),
+              child: const Text('VIEW BATCH'),
             ),
           ],
         ),

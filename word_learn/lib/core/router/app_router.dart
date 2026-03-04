@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/auth_screen.dart';
+import '../../features/batch/batch_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/onboarding/base_language_screen.dart';
 import '../../features/session/session_complete_screen.dart';
@@ -25,6 +26,7 @@ class AppRoutes {
   static const String onboardingDrip = '/onboarding/drip';
   static const String onboardingPaywall = '/onboarding/paywall';
   static const String home = '/home';
+  static const String batch = '/batch';
   static const String session = '/session';
   static const String sessionComplete = '/session/complete';
 }
@@ -72,6 +74,10 @@ GoRouter createAppRouter() {
       GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.batch,
+        builder: (context, state) => const BatchScreen(),
       ),
       GoRoute(
         path: AppRoutes.session,
