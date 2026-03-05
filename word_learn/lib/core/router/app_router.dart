@@ -13,6 +13,7 @@ import '../../features/onboarding/paywall_screen.dart';
 import '../../features/onboarding/target_languages_screen.dart';
 import '../../features/onboarding/welcome_screen.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/vault/vault_screen.dart';
 
 /// Route names — align with docs/BLUEPRINT.md.
 class AppRoutes {
@@ -27,6 +28,7 @@ class AppRoutes {
   static const String onboardingPaywall = '/onboarding/paywall';
   static const String home = '/home';
   static const String batch = '/batch';
+  static const String vault = '/vault';
   static const String session = '/session';
   static const String sessionComplete = '/session/complete';
 }
@@ -78,6 +80,10 @@ GoRouter createAppRouter() {
       GoRoute(
         path: AppRoutes.batch,
         builder: (context, state) => const BatchScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.vault,
+        builder: (context, state) => const VaultScreen(),
       ),
       GoRoute(
         path: AppRoutes.session,

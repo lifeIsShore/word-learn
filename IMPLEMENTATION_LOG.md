@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-05
+**Last Updated:** 2026-03-05 (Session 4)
 
 ---
 
@@ -21,12 +21,7 @@
 | — | In-App Purchase (IAP) Integration | WL-300 | P0; **deferred** |
 | — | Receipt Verification (Server-Side) | WL-301 | P0; **deferred** |
 | — | Subscription Entitlements & Feature Gating | WL-310 | P0; **deferred** |
-| — | Active Batch Status & Word List | WL-140 | P1, 3 pts — **next in line** |
-| — | Daily Drip (New Words Injection) | WL-150 | P0, 3 pts |
-| — | Batch Capacity Management (200-Word Limit) | WL-160 | P0, 2 pts |
-| — | Move Words to Vault (Manual Graduation) | WL-170 | P0, 3 pts |
-| — | View Vault & Mastered Words | WL-180 | P1, 2 pts |
-| — | Vault Audit & Re-Validation (Quarterly) | WL-190 | P2, 4 pts |
+| — | Vault Audit & Re-Validation (Quarterly) | WL-190 | P2, 4 pts — **deferred** |
 | — | The Curfew (Daily Deadline Enforcement) | WL-200 | P0, 4 pts |
 | — | The Ice State (Visual Priming at Curfew-1hr) | WL-210 | P1, 3 pts |
 | — | The Ash Protocol (Hard Streak Reset) | WL-220 | P0, 5 pts |
@@ -43,7 +38,7 @@
 
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
-| — | Active Batch Status & Word List (WL-140) | — | — | Next: batch/vault UI |
+| — | The Curfew (Daily Deadline Enforcement) | — | — | WL-200 — next in line |
 
 ---
 
@@ -51,6 +46,14 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-140: Active Batch (SRS wired, NEW/DUE badges, sort, detail, actions) | 2026-03-05 | SM-2 algorithm; session ratings update batch |
+| — | WL-150: Daily Drip (injectDrip, VocabularyRepository, 50-word B2 dataset) | 2026-03-05 | Drip button on Home; capacity-aware |
+| — | WL-160: Batch Capacity Management (200-word cap, near-capacity warning) | 2026-03-05 | Progress bar on Batch; warning banner on Home |
+| — | WL-170: Move Words to Vault (Graduate to Vault, snackbar feedback) | 2026-03-05 | Long-press → Graduate; duplicate guard |
+| — | WL-180: View Vault (VaultScreen, empty state, word detail sheet) | 2026-03-05 | /vault route; newest-first order |
+| — | VocabularyRepository (50-word B2 German dataset, CSV parser) | 2026-03-05 | Replaces sample_vocabulary.dart; extensible for WL-610 |
+| — | BatchEntry: copyWith + SM-2 withSm2Update + intervalDays/repetitions/isNewToday | 2026-03-05 | Full SRS model |
+| — | Home redesign: stats card, drip button, vault nav, capacity warning | 2026-03-05 | — |
 | — | IMPLEMENTATION_LOG.md created | 2026-03-05 | Kanban + session notes structure |
 | — | docs/BLUEPRINT.md created | 2026-03-05 | Tabs, pages, connections, panels, functions |
 | — | docs/DOCUMENTATION.md created | 2026-03-05 | Project overview, setup, architecture |
@@ -137,6 +140,29 @@
 
 **Next session**
 - Active Batch Status & Word List (WL-140), or Language Configuration & Loading (WL-600).
+
+---
+
+### Session: 2026-03-05 (Session 4 — Batch/Drip/Vault sprint)
+
+**What was done**
+- **WL-140 (Active Batch — closed):** Wired session difficulty ratings to SM-2 SRS updates in `BatchEntry`. Added `withSm2Update(quality)`, `copyWith()`, `intervalDays`, `repetitions`, `isNewToday` fields. Batch screen now shows NEW/DUE badges, capacity progress bar, SRS metadata in detail sheet, 4-way sort (due/hard/oldest/newest), improved long-press actions with snackbar feedback.
+- **WL-150 (Daily Drip):** Created `VocabularyRepository` with 50-word B2 German dataset and CSV parser. `ActiveBatchNotifier.injectDrip()` pulls new words, skips duplicates, respects capacity cap, marks words as `isNewToday`. Home screen has "DAILY DRIP" button with snackbar confirmation.
+- **WL-160 (Capacity Management):** `isNearCapacity` (≥90%) triggers warning banner on Home and orange progress bar on Batch screen. `isFull` blocks drip injection.
+- **WL-170 (Move to Vault):** Long-press → "Graduate to Vault" action; `VaultNotifier.add()` with duplicate guard; snackbar confirmation.
+- **WL-180 (View Vault):** New `VaultScreen` at `/vault` with empty state, mastered-word count header, newest-first list, word detail bottom sheet with MASTERED badge.
+- **Home redesign:** Stats card (batch/due/new/vault/streak/curfew), drip button, VIEW BATCH + VIEW VAULT row, capacity warning banner.
+- **Router:** Added `/vault` route and `AppRoutes.vault` constant.
+
+**Blockers / decisions**
+- `VocabularyRepository` embeds B2 German data inline (no asset loading). When WL-600 is implemented, replace with `rootBundle.loadString()` from `assets/data/*.csv`.
+- SM-2 quality mapping: HARD=0, FAMILIAR=1, OK=2, EASY=3. Min ease factor clamped at 1.3.
+- Session now draws cards from batch (due-first priority) rather than always using sample data.
+
+**Next session**
+- WL-200: The Curfew (daily deadline enforcement — check if session done before curfew time).
+- WL-210: The Ice State (visual priming at curfew-1hr).
+- WL-220: The Ash Protocol (streak reset on missed curfew).
 
 ---
 
