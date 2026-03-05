@@ -2,11 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/batch_entry.dart';
 import '../services/local_storage_service.dart';
-import 'session_state.dart';
-import 'vault_provider.dart';
 
-final vaultProvider =
-    NotifierProvider<VaultNotifier, List<BatchEntry>>(VaultNotifier.new);
+final vaultProvider = NotifierProvider<VaultNotifier, List<BatchEntry>>(
+  VaultNotifier.new,
+);
 
 class VaultNotifier extends Notifier<List<BatchEntry>> {
   final _storage = LocalStorageService.instance;

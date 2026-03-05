@@ -28,15 +28,21 @@ class SettingsScreen extends ConsumerWidget {
     final availableLangs = langNotifier.availableForUser();
 
     final baseLang = kAppLanguages
-        .firstWhere((l) => l.code == onboarding.baseLanguageCode,
-            orElse: () => kAppLanguages.first)
+        .firstWhere(
+          (l) => l.code == onboarding.baseLanguageCode,
+          orElse: () => kAppLanguages.first,
+        )
         .name;
 
     final targetLangs = onboarding.targetLanguageCodes
-        .map((code) => kAppLanguages
-            .firstWhere((l) => l.code == code,
-                orElse: () => kAppLanguages.first)
-            .name)
+        .map(
+          (code) => kAppLanguages
+              .firstWhere(
+                (l) => l.code == code,
+                orElse: () => kAppLanguages.first,
+              )
+              .name,
+        )
         .join(', ');
 
     return Scaffold(
@@ -119,8 +125,8 @@ class SettingsScreen extends ConsumerWidget {
             value: onboarding.cefrPerTarget.isEmpty
                 ? 'Not configured'
                 : onboarding.cefrPerTarget.entries
-                    .map((e) => '${e.key.toUpperCase()}: ${e.value}')
-                    .join('  ·  '),
+                      .map((e) => '${e.key.toUpperCase()}: ${e.value}')
+                      .join('  ·  '),
           ),
           _Divider(),
 
@@ -144,10 +150,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // ── ACCOUNT ──────────────────────────────────────────────────
           _SectionHeader(label: 'ACCOUNT'),
-          _ReadOnlyRow(
-            label: 'Subscription',
-            value: 'Free tier',
-          ),
+          _ReadOnlyRow(label: 'Subscription', value: 'Free tier'),
           _ActionRow(
             label: 'Reset Progress',
             sublabel: 'Clears streak and session history',
@@ -169,8 +172,7 @@ class SettingsScreen extends ConsumerWidget {
 
   // ── Editors ───────────────────────────────────────────────────────────────
 
-  void _editDisplayName(
-      BuildContext context, WidgetRef ref, String current) {
+  void _editDisplayName(BuildContext context, WidgetRef ref, String current) {
     final ctrl = TextEditingController(text: current);
     showDialog(
       context: context,
@@ -185,13 +187,12 @@ class SettingsScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
-              ref
-                  .read(settingsProvider.notifier)
-                  .setDisplayName(ctrl.text);
+              ref.read(settingsProvider.notifier).setDisplayName(ctrl.text);
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -202,7 +203,10 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _editCurfew(
-      BuildContext context, WidgetRef ref, TimeOfDay current) async {
+    BuildContext context,
+    WidgetRef ref,
+    TimeOfDay current,
+  ) async {
     final picked = await showTimePicker(
       context: context,
       initialTime: current,
@@ -219,19 +223,21 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Progress'),
         content: const Text(
-            'This will clear your streak and session history. Batch and Vault words are kept. Continue?'),
+          'This will clear your streak and session history. Batch and Vault words are kept. Continue?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(streakProvider.notifier).acknowledgeAsh();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Progress reset.')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Progress reset.')));
             },
             child: const Text('Reset'),
           ),
@@ -246,11 +252,13 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Account'),
         content: const Text(
-            'This is irreversible. All data will be permanently deleted. Auth is currently disabled — this action clears local state only.'),
+          'This is irreversible. All data will be permanently deleted. Auth is currently disabled — this action clears local state only.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () {
@@ -258,8 +266,10 @@ class SettingsScreen extends ConsumerWidget {
               // In production: POST /api/v1/user/delete + clear SQLite + tokens.
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content:
-                        Text('Account deletion deferred — auth not yet enabled.')),
+                  content: Text(
+                    'Account deletion deferred — auth not yet enabled.',
+                  ),
+                ),
               );
             },
             child: const Text('Delete'),
@@ -283,7 +293,11 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.xs),
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
       child: Text(
         label,
         style: AppTypography.labelLarge.copyWith(
@@ -310,17 +324,24 @@ class _ReadOnlyRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      title: Text(label,
-          style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray)),
-      trailing: Text(value,
-          style: AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray)),
+      title: Text(
+        label,
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray),
+      ),
+      trailing: Text(
+        value,
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
+      ),
     );
   }
 }
 
 class _EditableRow extends StatelessWidget {
-  const _EditableRow(
-      {required this.label, required this.value, required this.onTap});
+  const _EditableRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
   final String label;
   final String value;
   final VoidCallback onTap;
@@ -330,17 +351,25 @@ class _EditableRow extends StatelessWidget {
     return ListTile(
       dense: true,
       onTap: onTap,
-      title: Text(label,
-          style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray)),
+      title: Text(
+        label,
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value,
-              style:
-                  AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray)),
+          Text(
+            value,
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.mediumGray,
+            ),
+          ),
           SizedBox(width: AppSpacing.xs),
-          const Icon(Icons.chevron_right,
-              size: 16, color: AppColors.mediumGray),
+          const Icon(
+            Icons.chevron_right,
+            size: 16,
+            color: AppColors.mediumGray,
+          ),
         ],
       ),
     );
@@ -363,12 +392,18 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwitchListTile(
       dense: true,
-      activeColor: AppColors.primaryTeal,
-      title: Text(label,
-          style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray)),
-      subtitle: Text(subtitle,
-          style: AppTypography.bodyMedium
-              .copyWith(color: AppColors.mediumGray, fontSize: 11)),
+      activeThumbColor: AppColors.primaryTeal,
+      title: Text(
+        label,
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: AppTypography.bodyMedium.copyWith(
+          color: AppColors.mediumGray,
+          fontSize: 11,
+        ),
+      ),
       value: value,
       onChanged: onChanged,
     );
@@ -384,8 +419,10 @@ class _ThemeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      title: Text('Theme',
-          style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray)),
+      title: Text(
+        'Theme',
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray),
+      ),
       trailing: SegmentedButton<ThemeMode>(
         style: SegmentedButton.styleFrom(
           selectedBackgroundColor: AppColors.primaryTeal,
@@ -443,17 +480,27 @@ class _SliderRow extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.fromLTRB(
-              AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.darkGray)),
-              Text(displayValue,
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.primaryTeal,
-                          fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.darkGray,
+                ),
+              ),
+              Text(
+                displayValue,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.primaryTeal,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -490,8 +537,10 @@ class _LanguagePickerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      title: Text(label,
-          style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray)),
+      title: Text(
+        label,
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray),
+      ),
       trailing: DropdownButton<String>(
         value: active?.key,
         underline: const SizedBox.shrink(),
@@ -532,11 +581,17 @@ class _ActionRow extends StatelessWidget {
     return ListTile(
       dense: true,
       onTap: onTap,
-      title: Text(label,
-          style: AppTypography.bodyMedium.copyWith(color: color)),
-      subtitle: Text(sublabel,
-          style: AppTypography.bodyMedium
-              .copyWith(color: AppColors.mediumGray, fontSize: 11)),
+      title: Text(
+        label,
+        style: AppTypography.bodyMedium.copyWith(color: color),
+      ),
+      subtitle: Text(
+        sublabel,
+        style: AppTypography.bodyMedium.copyWith(
+          color: AppColors.mediumGray,
+          fontSize: 11,
+        ),
+      ),
       trailing: Icon(Icons.chevron_right, size: 16, color: color),
     );
   }

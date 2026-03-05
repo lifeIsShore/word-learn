@@ -57,10 +57,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final curfew = ref.read(onboardingProvider).curfew;
-      await ref.read(streakProvider.notifier).checkAshOnStartup(
-            now: DateTime.now(),
-            curfew: curfew,
-          );
+      await ref
+          .read(streakProvider.notifier)
+          .checkAshOnStartup(now: DateTime.now(), curfew: curfew);
       if (!mounted) return;
       if (ref.read(streakProvider).ashPending) {
         context.go(AppRoutes.ash);
@@ -93,8 +92,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final now = DateTime.now();
     final dueCount = batch
-        .where((e) =>
-            e.nextReviewDate == null || !e.nextReviewDate!.isAfter(now))
+        .where(
+          (e) => e.nextReviewDate == null || !e.nextReviewDate!.isAfter(now),
+        )
         .length;
     final newTodayCount = batch.where((e) => e.isNewToday).length;
 
@@ -104,8 +104,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         backgroundColor: curfewStatus.isIce
             ? AppColors.iceBackground
             : curfewStatus.isPastCurfew
-                ? const Color(0xFFFFF8F8)
-                : AppColors.paperWhite,
+            ? const Color(0xFFFFF8F8)
+            : AppColors.paperWhite,
         title: Text(
           'WordLearn',
           style: AppTypography.labelLarge.copyWith(
@@ -134,8 +134,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     Text(
                       'Welcome back, ${settings.displayName}.',
-                      style: AppTypography.displayMedium
-                          .copyWith(color: AppColors.darkGray),
+                      style: AppTypography.displayMedium.copyWith(
+                        color: AppColors.darkGray,
+                      ),
                     ),
                     SizedBox(height: AppSpacing.xl),
 
@@ -176,18 +177,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       onPressed: () {
                         ref
                             .read(sessionProvider.notifier)
-                            .startSession(
-                              maxCards: 10,
-                              config: activeLang,
-                            );
+                            .startSession(maxCards: 10, config: activeLang);
                         context.go(AppRoutes.session);
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: curfewStatus.isIce
                             ? AppColors.iceTeal
                             : curfewStatus.isPastCurfew
-                                ? AppColors.error
-                                : AppColors.primaryTeal,
+                            ? AppColors.error
+                            : AppColors.primaryTeal,
                       ),
                       child: Text(
                         curfewStatus.isPastCurfew
@@ -211,7 +209,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       },
                       icon: const Icon(Icons.water_drop, size: 18),
                       label: Text(
-                          'DAILY DRIP (+${onboarding.dailyDripCount} words)'),
+                        'DAILY DRIP (+${onboarding.dailyDripCount} words)',
+                      ),
                     ),
 
                     SizedBox(height: AppSpacing.sm),
@@ -244,9 +243,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _showDripSnackbar(
-      BuildContext context, int added, LanguageConfig? config) {
-    final langLabel =
-        config != null ? '${config.languageName} ${config.cefrLevel}' : '';
+    BuildContext context,
+    int added,
+    LanguageConfig? config,
+  ) {
+    final langLabel = config != null
+        ? '${config.languageName} ${config.cefrLevel}'
+        : '';
     final msg = added > 0
         ? '$added new $langLabel words added to your batch.'
         : 'Batch is full or no new words available.';
@@ -254,8 +257,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       SnackBar(
         content: Text(msg),
         duration: const Duration(seconds: 3),
-        backgroundColor:
-            added > 0 ? AppColors.primaryTeal : AppColors.mediumGray,
+        backgroundColor: added > 0
+            ? AppColors.primaryTeal
+            : AppColors.mediumGray,
       ),
     );
   }
@@ -274,10 +278,7 @@ class _LanguageSwitcher extends ConsumerWidget {
 
     // If the user has only one language (or none), show a compact label only.
     if (available.length <= 1) {
-      return _LangPill(
-        config: activeLang,
-        onTap: null,
-      );
+      return _LangPill(config: activeLang, onTap: null);
     }
 
     return SingleChildScrollView(
@@ -398,10 +399,10 @@ class _StatsCard extends StatelessWidget {
     final borderColor = curfewStatus.isPastCurfew
         ? AppColors.error
         : curfewStatus.isIce
-            ? AppColors.iceTeal
-            : isNearCapacity
-                ? AppColors.warning
-                : AppColors.lightGray;
+        ? AppColors.iceTeal
+        : isNearCapacity
+        ? AppColors.warning
+        : AppColors.lightGray;
 
     return Container(
       padding: EdgeInsets.all(AppSpacing.lg),
@@ -440,8 +441,8 @@ class _StatsCard extends StatelessWidget {
             valueColor: curfewStatus.isPastCurfew
                 ? AppColors.error
                 : curfewStatus.isIce
-                    ? AppColors.iceTeal
-                    : AppColors.darkGray,
+                ? AppColors.iceTeal
+                : AppColors.darkGray,
             isLast: true,
           ),
         ],
@@ -472,14 +473,19 @@ class _StatRow extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.mediumGray)),
-              Text(value,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: valueColor ?? AppColors.darkGray,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                label,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.mediumGray,
+                ),
+              ),
+              Text(
+                value,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: valueColor ?? AppColors.darkGray,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -500,8 +506,7 @@ class _SessionDoneBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.success.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-            color: AppColors.success.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -510,8 +515,9 @@ class _SessionDoneBadge extends StatelessWidget {
           Expanded(
             child: Text(
               'Session complete. Streak: $streak days. Curfew is safe.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.success),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.success,
+              ),
             ),
           ),
         ],
@@ -536,14 +542,18 @@ class _CapacityWarning extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: AppColors.warning, size: 20),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.warning,
+            size: 20,
+          ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               'Batch nearly full ($current/$capacity). Graduate words to Vault to make room.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.warning),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.warning,
+              ),
             ),
           ),
         ],

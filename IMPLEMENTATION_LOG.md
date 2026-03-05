@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-05 (Session 9)
+**Last Updated:** 2026-03-05 (Session 10)
 
 ---
 
@@ -12,11 +12,8 @@
 
 | ID | Item | Epic / Story | Notes |
 |----|------|-------------|-------|
-| — | Email Sign-Up Flow | WL-001 | P0; **deferred** — auth disabled for testing |
 | — | Google OAuth Sign-In | WL-002 | P0; **deferred** |
 | — | Apple OAuth Sign-In (iOS) | WL-003 | P0; **deferred** |
-| — | JWT Token Management & Refresh | WL-004 | P0; **deferred** |
-| — | Logout & Session Termination | WL-005 | P1; **deferred** |
 | — | Subscription Paywall (IAP) | WL-016 full | P0; **disabled** — placeholder only, enable later |
 | — | In-App Purchase (IAP) Integration | WL-300 | P0; **deferred** |
 | — | Receipt Verification (Server-Side) | WL-301 | P0; **deferred** |
@@ -44,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-001/004/005: Backend auth — FastAPI + PostgreSQL + JWT (signup, signin, refresh, logout, /me). Docker Compose stack with PgAdmin. Self-hosted, no Supabase. | 2026-03-05 | `backend/` directory; see Session 10 notes |
 | — | WL-610: Multi-Language Study Sessions (per-language batch isolation, language-tagged SRS, multi-language session, per-language stats) | 2026-03-05 | languageBatchProvider family; language badge on flashcard; per-lang breakdown in summary |
 | — | WL-600: Language Configuration & Loading (asset CSV loader, VocabularyLoader, LanguageConfig, ActiveLanguageProvider, language switcher) | 2026-03-05 | Asset-based; splash warms cache; drip + settings wired |
 | — | WL-400: Settings Screen (Profile · Learning · Appearance · Stats · Privacy · Account) | 2026-03-05 | SettingsState, SettingsNotifier, reactive ThemeMode |
@@ -312,3 +310,43 @@
 ---
 
 *Update this file at the end of each implementation session. Move items between To Do / In Progress / Done and add a new Session Notes block.*
+
+---
+
+### Session: 2026-03-05 (Session 10 — WL-001/004/005: Self-Hosted Backend)
+
+**Decision made**
+- Replaced Supabase with a fully self-hosted stack: FastAPI (Python) + PostgreSQL 16 + Docker Compose. No vendor lock-in, full control, free to run on any VPS.
+
+**What was built** (`backend/` directory)
+- `docker-compose.yml` — PostgreSQL 16, FastAPI API, PgAdmin (dev profile). One command: `docker compose --profile dev up`.
+- `.env.example` — all secrets documented; copy to `.env` and fill in values.
+- `app/core/config.py` — Pydantic Settings, reads from `.env`.
+- `app/core/database.py` — SQLAlchemy async engine (asyncpg), session dependency, `create_all_tables()` on startup.
+- `app/core/security.py` — bcrypt password hashing, JWT access + refresh token creation/decode, `get_current_user` FastAPI dependency.
+- `app/models/user.py` — `User` ORM model (id, email, hashed_password, display_name, subscription_tier, refresh_token_hash, timestamps).
+- `app/schemas/auth.py` — Pydantic schemas with password strength validation.
+- `app/routers/auth.py` — `POST /signup`, `POST /signin`, `POST /refresh`, `POST /logout`, `GET /me`, `PATCH /me`.
+- `app/main.py` — FastAPI app, CORS, lifespan startup, `/health` check, Swagger at `/docs`.
+- `app/Dockerfile` — Python 3.12-slim.
+
+**Architecture decisions**
+- Refresh tokens stored **hashed** (bcrypt) in DB. Logout clears the hash — server-side invalidation without a blocklist table.
+- Every `/refresh` call rotates the refresh token — stolen tokens can only be used once.
+- PgAdmin gated behind `--profile dev` — never starts in production.
+- `create_all_tables()` on FastAPI startup for dev. Alembic installed for future migrations.
+
+**How to start**
+```bash
+cd backend
+cp .env.example .env   # set POSTGRES_PASSWORD + JWT_SECRET_KEY
+docker compose --profile dev up --build
+# API docs: http://localhost:8000/docs
+# PgAdmin:  http://localhost:5050
+```
+
+**Next session**
+- Wire Flutter `auth_screen.dart` to real endpoints.
+- Add `AuthRepository` + `AuthNotifier` (Riverpod) in Flutter.
+- Store JWT tokens with `flutter_secure_storage`.
+- Update `SplashScreen` to check stored token and skip onboarding for returning users.

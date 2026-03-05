@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/curfew_service.dart';
@@ -60,8 +59,8 @@ final curfewStatusProvider = Provider<CurfewStatus>((ref) {
   final phase = isPast
       ? CurfewPhase.pastCurfew
       : isIce
-          ? CurfewPhase.ice
-          : CurfewPhase.normal;
+      ? CurfewPhase.ice
+      : CurfewPhase.normal;
 
   return CurfewStatus(
     phase: phase,
