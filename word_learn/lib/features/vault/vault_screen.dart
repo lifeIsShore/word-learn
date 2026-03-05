@@ -7,6 +7,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/models/batch_entry.dart';
+import '../../shared/state/audit_provider.dart';
+import '../../shared/state/audit_state.dart';
 import '../../shared/state/vault_provider.dart';
 
 /// WL-180: Vault — mastered words archive. Read-only list with word details.
@@ -16,6 +18,8 @@ class VaultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vault = ref.watch(vaultProvider);
+    final auditStatus = ref.watch(auditProvider).status;
+    final auditDue = auditStatus == AuditStatus.due;
 
     return Scaffold(
       backgroundColor: AppColors.paperWhite,
@@ -45,7 +49,24 @@ class VaultScreen extends ConsumerWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _VaultHeader(count: vault.length),
+                // WL-190: Audit due banner
+                if (auditDue)
+                  _AuditDueBanner(
+                    onStart: () {
+                      ref.read(auditProvider.notifier).startAudit();
+                      context.go(AppRoutes.auditSession);
+                    },
+                  ),
+                _VaultHeader(
+                  count: vault.length,
+                  auditDue: auditDue,
+                  onAuditTap: auditDue
+                      ? () {
+                          ref.read(auditProvider.notifier).startAudit();
+                          context.go(AppRoutes.auditSession);
+                        }
+                      : null,
+                ),
                 Expanded(
                   child: ListView.builder(
                     padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -136,8 +157,14 @@ class VaultScreen extends ConsumerWidget {
 }
 
 class _VaultHeader extends StatelessWidget {
-  const _VaultHeader({required this.count});
+  const _VaultHeader({
+    required this.count,
+    this.auditDue = false,
+    this.onAuditTap,
+  });
   final int count;
+  final bool auditDue;
+  final VoidCallback? onAuditTap;
 
   @override
   Widget build(BuildContext context) {
@@ -158,14 +185,78 @@ class _VaultHeader extends StatelessWidget {
               children: [
                 Text(
                   '$count words mastered',
-                  style: AppTypography.labelLarge.copyWith(color: AppColors.primaryTeal),
+                  style: AppTypography.labelLarge
+                      .copyWith(color: AppColors.primaryTeal),
                 ),
                 SizedBox(height: AppSpacing.xs),
                 Text(
                   'Words you\'ve demonstrated consistent mastery of.',
-                  style: AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.mediumGray),
                 ),
               ],
+            ),
+          ),
+          // WL-190: RE-REVIEW button when audit is not yet due
+          if (!auditDue && onAuditTap == null)
+            TextButton(
+              onPressed: null,
+              child: Text(
+                'RE-REVIEW',
+                style: AppTypography.labelLarge.copyWith(
+                  color: AppColors.mediumGray,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Prominent banner shown when the quarterly audit is due. WL-190.
+class _AuditDueBanner extends StatelessWidget {
+  const _AuditDueBanner({required this.onStart});
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.fromLTRB(
+          AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+      padding: EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: AppColors.warning.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.refresh, color: AppColors.warning, size: 20),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Quarterly audit due. Re-check your mastered words.',
+              style: AppTypography.bodyMedium
+                  .copyWith(color: AppColors.warning),
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm),
+          FilledButton(
+            onPressed: onStart,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'START',
+              style: AppTypography.labelLarge
+                  .copyWith(color: Colors.white, fontSize: 11),
             ),
           ),
         ],

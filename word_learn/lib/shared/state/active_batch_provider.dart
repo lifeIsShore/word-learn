@@ -156,6 +156,15 @@ class LanguageBatchNotifier
     await _storage.upsertBatchEntries(updated);
   }
 
+  /// Add a single entry directly — used by AuditNotifier when demoting
+  /// vault words back to the active batch. WL-190.
+  Future<void> addEntry(BatchEntry entry) async {
+    if (state.any((e) => e.id == entry.id)) return; // duplicate guard
+    if (isFull) return;
+    state = [...state, entry];
+    await _storage.upsertBatchEntry(entry);
+  }
+
   // ── Seed ───────────────────────────────────────────────────────────────────
 
   List<BatchEntry> _buildSeed() {
@@ -231,6 +240,8 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
 
   Future<void> applyRating(String cardId, DifficultyRating rating) =>
       _delegate.applyRating(cardId, rating);
+
+  Future<void> addEntry(BatchEntry entry) => _delegate.addEntry(entry);
 
   Future<void> remove(String id) => _delegate.remove(id);
 

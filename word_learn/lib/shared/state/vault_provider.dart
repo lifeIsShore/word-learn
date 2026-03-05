@@ -31,4 +31,10 @@ class VaultNotifier extends Notifier<List<BatchEntry>> {
   }
 
   int get count => state.length;
+
+  /// Remove a word from the vault. Used by AuditNotifier when demoting. WL-190.
+  Future<void> remove(String id) async {
+    state = state.where((e) => e.id != id).toList();
+    await _storage.deleteVaultEntry(id);
+  }
 }

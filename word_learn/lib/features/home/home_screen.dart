@@ -174,12 +174,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                     // ── Primary CTA (WL-610: language-aware session) ──
                     FilledButton(
-                      onPressed: () {
-                        ref
-                            .read(sessionProvider.notifier)
-                            .startSession(maxCards: 10, config: activeLang);
-                        context.go(AppRoutes.session);
-                      },
+                      onPressed: batch.isEmpty
+                          ? null // disabled — show snackbar hint below
+                          : () {
+                              ref
+                                  .read(sessionProvider.notifier)
+                                  .startSession(
+                                      maxCards: 10, config: activeLang);
+                              context.go(AppRoutes.session);
+                            },
                       style: FilledButton.styleFrom(
                         backgroundColor: curfewStatus.isIce
                             ? AppColors.iceTeal
@@ -193,6 +196,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             : 'START SESSION',
                       ),
                     ),
+
+                    if (batch.isEmpty) ...[   
+                      SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Batch is empty. Tap Daily Drip to add words first.',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.mediumGray,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
 
                     SizedBox(height: AppSpacing.md),
 

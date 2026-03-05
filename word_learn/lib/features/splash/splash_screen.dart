@@ -14,6 +14,7 @@ import '../../shared/state/auth_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
+import '../../shared/state/audit_provider.dart';
 import '../../shared/state/vault_provider.dart';
 
 /// Initial screen — logo/title, warms vocabulary cache, initialises DB, then redirects.
@@ -78,6 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await ref.read(settingsProvider.notifier).init();
     await ref.read(streakProvider.notifier).init();
     await ref.read(vaultProvider.notifier).init();
+    await ref.read(auditProvider.notifier).init();
 
     // 3. Warm vocabulary cache for all language configs.
     await Future.wait(

@@ -15,6 +15,8 @@ import '../../features/onboarding/target_languages_screen.dart';
 import '../../features/onboarding/welcome_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/vault/audit_complete_screen.dart';
+import '../../features/vault/audit_session_screen.dart';
 import '../../features/vault/vault_screen.dart';
 
 /// Route names — align with docs/BLUEPRINT.md.
@@ -35,6 +37,8 @@ class AppRoutes {
   static const String sessionComplete = '/session/complete';
   static const String settings = '/settings';
   static const String ash = '/ash';
+  static const String auditSession = '/vault/audit';
+  static const String auditComplete = '/vault/audit/complete';
 }
 
 GoRouter createAppRouter() {
@@ -104,6 +108,14 @@ GoRouter createAppRouter() {
       GoRoute(
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.auditSession,
+        builder: (context, state) => const AuditSessionScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.auditComplete,
+        builder: (context, state) => const AuditCompleteScreen(),
       ),
     ],
   );

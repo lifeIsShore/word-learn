@@ -40,6 +40,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-190: Vault Audit (quarterly re-validation, AuditNotifier, AuditSessionScreen, AuditCompleteScreen, audit due banner in VaultScreen) + Polish (empty batch guard, snackbar consistency) | 2026-03-05 | See Session 13 notes |
 | — | WL-500 Phase 2: Ghost Backup — BackupPayload, BackupService (AES-256-CBC + gzip), BackupNotifier, backend `/api/v1/backup` (POST/GET/DELETE), Settings Sync Now, session-complete trigger | 2026-03-05 | See Session 12 notes |
 | — | WL-001/004/005: Flutter auth layer — AuthRepository, AuthNotifier, AuthUser, full sign-in/sign-up UI, dev bypass flag | 2026-03-05 | `devModeSkipAuth=true`; see Session 11 notes |
 | — | WL-001/004/005: Backend auth — FastAPI + PostgreSQL + JWT (signup, signin, refresh, logout, /me). Docker Compose stack with PgAdmin. Self-hosted, no Supabase. | 2026-03-05 | `backend/` directory; see Session 10 notes |
@@ -307,6 +308,38 @@
 - **State:** Riverpod in use; `onboardingProvider` holds onboarding choices. Auth and subscription state to be added when auth/IAP are enabled.
 - **Auth & payment:** Deferred and disabled for easier testing. Auth screen and Paywall (IAP) are placeholders; enable when ready (WL-001–005, WL-016 full, WL-300, WL-301, WL-310).
 - **Backend:** Supabase (Auth, DB, Edge Functions). Local-first: SQLite + SQLCipher for progress; sync via “Ghost Backup” protocol.
+
+---
+
+### Session: 2026-03-05 (Session 13 — WL-190: Vault Audit + Polish)
+
+**What was built**
+
+**WL-190: Vault Audit**
+- `shared/state/audit_state.dart` — `AuditState`, `AuditStatus`, `AuditVerdict`, `AuditCardResult`. 90-day interval (`kAuditInterval`), 10-word sample (`kAuditCardCount`).
+- `shared/state/audit_provider.dart` — `AuditNotifier`. `init()` loads last audit date from SQLite and marks due if vault ≥ 10 words + 90 days elapsed. `startAudit()` samples random vault words. `submitVerdict()` routes EASY/OK → retained, HARD/FAMILIAR → demoted. `completeAudit()` removes demoted words from vault, re-adds to correct language batch with reset SRS, persists new audit date. `dismiss()` resets state.
+- `features/vault/audit_session_screen.dart` — Flashcard-style audit session. Reveals word, shows 4 verdict buttons (HARD/FAMILIAR back-to-batch, OK/EASY stay-in-vault). Progress bar. X to exit early.
+- `features/vault/audit_complete_screen.dart` — Summary: reviewed / retained / demoted counts. Lists demoted words. BACK TO VAULT CTA.
+- `features/vault/vault_screen.dart` — Audit due banner (orange, START button) + `_AuditDueBanner` widget. `_VaultHeader` updated with optional RE-REVIEW label.
+- `shared/state/vault_provider.dart` — Added `remove(id)` method for audit demotion.
+- `shared/state/active_batch_provider.dart` — Added `addEntry(entry)` to both `LanguageBatchNotifier` and `ActiveBatchNotifier` wrapper, for audit demotion re-insert.
+- `core/router/app_router.dart` — `/vault/audit` and `/vault/audit/complete` routes.
+- `features/splash/splash_screen.dart` — `auditProvider.init()` called during startup.
+
+**Polish**
+- `features/home/home_screen.dart` — START SESSION button disabled (`onPressed: null`) when batch is empty. Explanatory hint text shown below: "Batch is empty. Tap Daily Drip to add words first."
+- Batch empty state was already handled in BatchScreen. No change needed there.
+
+**Architecture decisions**
+- Audit scheduling uses a simple settings key (`audit.last_audit_date`). No separate DB table needed.
+- Audit session does NOT record streak or trigger backup — it’s a maintenance task, not a daily session.
+- Audit is triggered by `init()` on startup only. No real-time polling.
+- First audit triggers only when vault has ≥ 10 words (no point auditing 2 words). Subsequent audits trigger every 90 days.
+
+**Next session**
+- WL-510: Conflict Resolution — last-write-wins multi-device sync.
+- WL-002/003: Google + Apple OAuth — needed before flipping `devModeSkipAuth = false`.
+- WL-300/301/310: IAP + Subscriptions — final blocker before public launch.
 
 ---
 
