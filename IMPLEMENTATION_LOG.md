@@ -22,9 +22,7 @@
 | — | Receipt Verification (Server-Side) | WL-301 | P0; **deferred** |
 | — | Subscription Entitlements & Feature Gating | WL-310 | P0; **deferred** |
 | — | Vault Audit & Re-Validation (Quarterly) | WL-190 | P2, 4 pts — **deferred** |
-| — | The Curfew (Daily Deadline Enforcement) | WL-200 | P0, 4 pts |
-| — | The Ice State (Visual Priming at Curfew-1hr) | WL-210 | P1, 3 pts |
-| — | The Ash Protocol (Hard Streak Reset) | WL-220 | P0, 5 pts |
+
 | — | User Profile & Settings Screen | WL-400 | P1, 4 pts |
 | — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
 | — | Ghost Backup (Cloud Sync) | WL-500 | P0, 5 pts |
@@ -38,7 +36,7 @@
 
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
-| — | The Curfew (Daily Deadline Enforcement) | — | — | WL-200 — next in line |
+| — | User Profile & Settings Screen | — | — | WL-400 — next in line |
 
 ---
 
@@ -46,6 +44,13 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-200: Curfew Enforcement (reactive status, streak integration, live countdown) | 2026-03-05 | CurfewStatusProvider, CurfewPhase enum |
+| — | WL-210: Ice State (banner, scaffold bg tint, session button colour shift) | 2026-03-05 | IceStateBanner + IceStateScaffoldBackground widgets |
+| — | WL-220: Ash Protocol (AshScreen, streak reset on startup, acknowledgeAsh) | 2026-03-05 | /ash route; dark full-screen modal |
+| — | StreakState + StreakNotifier (streak, longestStreak, sessionCompletedToday, ashPending) | 2026-03-05 | recordSessionComplete, checkAshOnStartup |
+| — | SessionNotifier.completeAndClear() wires streak recording | 2026-03-05 | Replaces clearSession() on session complete |
+| — | SessionCompleteScreen: real streak display, curfew banner | 2026-03-05 | — |
+| — | HomeScreen: AppLifecycleObserver, 60s timer, ash redirect, ice AppBar tint | 2026-03-05 | — |
 | — | WL-140: Active Batch (SRS wired, NEW/DUE badges, sort, detail, actions) | 2026-03-05 | SM-2 algorithm; session ratings update batch |
 | — | WL-150: Daily Drip (injectDrip, VocabularyRepository, 50-word B2 dataset) | 2026-03-05 | Drip button on Home; capacity-aware |
 | — | WL-160: Batch Capacity Management (200-word cap, near-capacity warning) | 2026-03-05 | Progress bar on Batch; warning banner on Home |
@@ -163,6 +168,28 @@
 - WL-200: The Curfew (daily deadline enforcement — check if session done before curfew time).
 - WL-210: The Ice State (visual priming at curfew-1hr).
 - WL-220: The Ash Protocol (streak reset on missed curfew).
+
+---
+
+### Session: 2026-03-05 (Session 5 — Curfew / Ice State / Ash Protocol)
+
+**What was done**
+- **StreakState + StreakNotifier:** Full streak model — `currentStreak`, `longestStreak`, `sessionCompletedToday`, `lastSessionDate`, `ashPending`. Methods: `recordSessionComplete()` (consecutive-day logic), `checkAshOnStartup()` (detects missed curfew), `acknowledgeAsh()`.
+- **CurfewStatusProvider (WL-200):** Reactive `Provider<CurfewStatus>` computing `CurfewPhase` (normal / ice / pastCurfew) from onboarding curfew time + streak state. Used by all screens via `ref.watch(curfewStatusProvider)`.
+- **IceStateBanner + IceStateScaffoldBackground (WL-210):** Animated banner slides in during Ice window (within 60 min of curfew, session not done). Scaffold background shifts to ice-teal tint (ice) or faint-red tint (past curfew). AppBar colour also reacts.
+- **AshScreen (WL-220):** Full-screen dark modal on `/ash` route. Shows burned-streak message, resets streak visually, CTA: "I UNDERSTAND. BEGIN AGAIN." → acknowledges ash and navigates to Home.
+- **HomeScreen:** Now a `ConsumerStatefulWidget` with `WidgetsBindingObserver`. Runs `checkAshOnStartup()` on init and on `AppLifecycleState.resumed`. 60-second `Timer` invalidates `curfewStatusProvider` for live countdown. START SESSION button text/colour shifts with curfew phase. Session-done green badge shown when `sessionCompletedToday`.
+- **SessionCompleteScreen:** Uses `completeAndClear()` (not `clearSession()`) so streak increments on CONTINUE. Displays real streak preview. Curfew banner adapts to ice/past-curfew states.
+- **SessionNotifier:** Added `completeAndClear()` — records streak before clearing session. Old `clearSession()` preserved for mid-session abandonment.
+- **Router:** Added `/ash` route.
+
+**Blockers / decisions**
+- Ash check uses `lastSessionDate` compared to yesterday (UTC-local day boundary). On devices with DST transitions this is correct because `DateTime.now()` is always local time.
+- `curfewStatusProvider` is a plain `Provider` (not `StreamProvider`) for simplicity. Live updates via 60s timer in HomeScreen is sufficient for the countdown display.
+- Streak is in-memory only. Will be persisted to SQLite in WL-500.
+
+**Next session**
+- WL-400: User Profile & Settings Screen (curfew edit, drip slider, theme toggle, language management).
 
 ---
 

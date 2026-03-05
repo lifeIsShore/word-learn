@@ -3,13 +3,14 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/vocabulary_repository.dart';
-import '../models/batch_entry.dart';
 import '../models/flashcard_item.dart';
 import 'session_state.dart';
 import 'active_batch_provider.dart';
+import 'streak_provider.dart';
 
-final sessionProvider =
-    NotifierProvider<SessionNotifier, SessionState>(SessionNotifier.new);
+final sessionProvider = NotifierProvider<SessionNotifier, SessionState>(
+  SessionNotifier.new,
+);
 
 class SessionNotifier extends Notifier<SessionState> {
   @override
@@ -22,10 +23,14 @@ class SessionNotifier extends Notifier<SessionState> {
 
     // Prefer cards that are due for review, then fill with others.
     final due = batch
-        .where((e) => e.nextReviewDate == null || !e.nextReviewDate!.isAfter(now))
+        .where(
+          (e) => e.nextReviewDate == null || !e.nextReviewDate!.isAfter(now),
+        )
         .toList();
     final notDue = batch
-        .where((e) => e.nextReviewDate != null && e.nextReviewDate!.isAfter(now))
+        .where(
+          (e) => e.nextReviewDate != null && e.nextReviewDate!.isAfter(now),
+        )
         .toList();
 
     due.shuffle(Random());
@@ -35,13 +40,17 @@ class SessionNotifier extends Notifier<SessionState> {
 
     // Fall back to sample vocabulary if batch is empty (dev/demo mode).
     final cards = combined.isNotEmpty
-        ? combined.map((e) => FlashcardItem(
-              id: e.id,
-              word: e.word,
-              meaning: e.meaning,
-              exampleSentence: e.exampleSentence,
-              exampleTranslation: e.exampleTranslation,
-            )).toList()
+        ? combined
+              .map(
+                (e) => FlashcardItem(
+                  id: e.id,
+                  word: e.word,
+                  meaning: e.meaning,
+                  exampleSentence: e.exampleSentence,
+                  exampleTranslation: e.exampleTranslation,
+                ),
+              )
+              .toList()
         : _fallbackSample(maxCards);
 
     state = SessionState(
@@ -55,13 +64,15 @@ class SessionNotifier extends Notifier<SessionState> {
   List<FlashcardItem> _fallbackSample(int max) {
     return VocabularyRepository.getSampleWords()
         .take(max)
-        .map((r) => FlashcardItem(
-              id: r.id,
-              word: r.word,
-              meaning: r.meaning,
-              exampleSentence: r.exampleSentence,
-              exampleTranslation: r.exampleTranslation,
-            ))
+        .map(
+          (r) => FlashcardItem(
+            id: r.id,
+            word: r.word,
+            meaning: r.meaning,
+            exampleSentence: r.exampleSentence,
+            exampleTranslation: r.exampleTranslation,
+          ),
+        )
         .toList();
   }
 
@@ -81,7 +92,14 @@ class SessionNotifier extends Notifier<SessionState> {
     ref.read(activeBatchProvider.notifier).applyRating(card.id, rating);
   }
 
-  /// Clear session (e.g. after viewing completion screen).
+  /// Mark session complete: record streak, then clear session state.
+  /// Call this from the Session Complete screen CONTINUE button.
+  void completeAndClear() {
+    ref.read(streakProvider.notifier).recordSessionComplete(DateTime.now());
+    state = const SessionState();
+  }
+
+  /// Clear session without recording streak (e.g. abandoned mid-session).
   void clearSession() {
     state = const SessionState();
   }
