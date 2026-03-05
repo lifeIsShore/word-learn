@@ -77,12 +77,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final onboarding = ref.watch(onboardingProvider);
     final settings = ref.watch(settingsProvider);
-    final batch = ref.watch(activeBatchProvider);
-    final batchNotifier = ref.read(activeBatchProvider.notifier);
     final vaultCount = ref.watch(vaultProvider).length;
     final streak = ref.watch(streakProvider);
     final curfewStatus = ref.watch(curfewStatusProvider);
     final activeLang = ref.watch(activeLanguageProvider);
+
+    // WL-610: read stats from the active language batch, not the global one.
+    final batch = activeLang != null
+        ? ref.watch(languageBatchProvider(activeLang))
+        : ref.watch(activeBatchProvider);
+    final batchNotifier = activeLang != null
+        ? ref.read(languageBatchProvider(activeLang).notifier)
+        : ref.read(activeBatchProvider.notifier);
 
     final now = DateTime.now();
     final dueCount = batch
@@ -164,12 +170,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     if (streak.sessionCompletedToday)
                       SizedBox(height: AppSpacing.md),
 
-                    // ── Primary CTA ───────────────────────────────────
+                    // ── Primary CTA (WL-610: language-aware session) ──
                     FilledButton(
                       onPressed: () {
                         ref
                             .read(sessionProvider.notifier)
-                            .startSession(maxCards: 10);
+                            .startSession(
+                              maxCards: 10,
+                              config: activeLang,
+                            );
                         context.go(AppRoutes.session);
                       },
                       style: FilledButton.styleFrom(

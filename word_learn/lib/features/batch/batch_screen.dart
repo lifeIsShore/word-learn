@@ -8,6 +8,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/models/batch_entry.dart';
 import '../../shared/state/active_batch_provider.dart';
+import '../../shared/state/active_language_provider.dart';
 
 /// WL-140: Active Batch — list of words, sort options, X/200, NEW badge,
 /// SRS metadata, tap detail, long-press actions.
@@ -48,8 +49,14 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final batch = ref.watch(activeBatchProvider);
-    final notifier = ref.read(activeBatchProvider.notifier);
+    // WL-610: show the active language's batch, fallback to legacy
+    final activeLang = ref.watch(activeLanguageProvider);
+    final batch = activeLang != null
+        ? ref.watch(languageBatchProvider(activeLang))
+        : ref.watch(activeBatchProvider);
+    final notifier = activeLang != null
+        ? ref.read(languageBatchProvider(activeLang).notifier)
+        : ref.read(activeBatchProvider.notifier);
     final capacity = notifier.capacity;
     final sorted = _sorted(batch);
     final newCount = batch.where((e) => e.isNewToday).length;
@@ -61,7 +68,12 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(AppRoutes.home),
         ),
-        title: Text('Active Batch', style: AppTypography.labelLarge),
+        title: Text(
+          activeLang != null
+              ? 'Batch · ${activeLang.languageName} ${activeLang.cefrLevel}'
+              : 'Active Batch',
+          style: AppTypography.labelLarge,
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -8,9 +8,10 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/state/curfew_status_provider.dart';
 import '../../shared/state/session_provider.dart';
+import '../../shared/state/session_state.dart';
 import '../../shared/state/streak_provider.dart';
 
-/// WL-075: Session complete — summary (reviewed, mastered, streak), CONTINUE → Home.
+/// WL-075 / WL-610: Session complete — overall summary + per-language breakdown.
 class SessionCompleteScreen extends ConsumerWidget {
   const SessionCompleteScreen({super.key});
 
@@ -18,8 +19,8 @@ class SessionCompleteScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
     final curfewStatus = ref.watch(curfewStatusProvider);
-    // Peek at streak BEFORE completeAndClear() — we'll record on CONTINUE.
     final streak = ref.watch(streakProvider);
+    final langStats = session.perLanguageStats;
 
     return Scaffold(
       backgroundColor: curfewStatus.isIce
@@ -33,7 +34,7 @@ class SessionCompleteScreen extends ConsumerWidget {
             children: [
               const Spacer(),
 
-              // ── Headline ─────────────────────────────────────────────
+              // ── Headline ──────────────────────────────────────────────
               Text(
                 'Session complete.',
                 style: AppTypography.displayLarge.copyWith(
@@ -43,7 +44,7 @@ class SessionCompleteScreen extends ConsumerWidget {
 
               SizedBox(height: AppSpacing.xl),
 
-              // ── Stats ─────────────────────────────────────────────────
+              // ── Overall stats ──────────────────────────────────────────
               _StatRow(
                 label: 'Words reviewed',
                 value: '${session.reviewedCount}',
@@ -57,19 +58,28 @@ class SessionCompleteScreen extends ConsumerWidget {
               SizedBox(height: AppSpacing.sm),
               _StatRow(
                 label: 'Current streak',
-                // Add 1 to preview what streak will be after this session
-                value: '${streak.currentStreak + (streak.sessionCompletedToday ? 0 : 1)} days',
+                value:
+                    '${streak.currentStreak + (streak.sessionCompletedToday ? 0 : 1)} days',
                 highlight: true,
               ),
 
+              // ── Per-language breakdown (WL-610) ───────────────────────
+              if (session.isMultiLanguage && langStats.isNotEmpty) ...[
+                SizedBox(height: AppSpacing.lg),
+                _LanguageBreakdown(stats: langStats.values.toList()),
+              ] else if (langStats.length == 1) ...[
+                SizedBox(height: AppSpacing.sm),
+                _SingleLanguageNote(stat: langStats.values.first),
+              ],
+
               SizedBox(height: AppSpacing.lg),
 
-              // ── Curfew reminder / urgency ─────────────────────────────
+              // ── Curfew reminder ────────────────────────────────────────
               _CurfewBanner(curfewStatus: curfewStatus),
 
               const Spacer(),
 
-              // ── CTA ───────────────────────────────────────────────────
+              // ── CTA ────────────────────────────────────────────────────
               FilledButton(
                 onPressed: () {
                   ref.read(sessionProvider.notifier).completeAndClear();
@@ -84,6 +94,8 @@ class SessionCompleteScreen extends ConsumerWidget {
     );
   }
 }
+
+// ── Widgets ───────────────────────────────────────────────────────────────────
 
 class _StatRow extends StatelessWidget {
   const _StatRow({
@@ -101,15 +113,101 @@ class _StatRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: AppTypography.bodyLarge.copyWith(color: AppColors.mediumGray),
-        ),
+        Text(label,
+            style:
+                AppTypography.bodyLarge.copyWith(color: AppColors.mediumGray)),
         Text(
           value,
           style: AppTypography.bodyLarge.copyWith(
             color: highlight ? AppColors.success : AppColors.darkGray,
-            fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
+            fontWeight:
+                highlight ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Shown when session mixed multiple languages. WL-610.
+class _LanguageBreakdown extends StatelessWidget {
+  const _LanguageBreakdown({required this.stats});
+  final List<LanguageSessionStats> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTeal.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+            color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Language Breakdown',
+            style: AppTypography.labelLarge.copyWith(
+              color: AppColors.primaryTeal,
+              fontSize: 11,
+              letterSpacing: 0.8,
+            ),
+          ),
+          SizedBox(height: AppSpacing.sm),
+          ...stats.map((s) => Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      s.languageName,
+                      style: AppTypography.bodyMedium
+                          .copyWith(color: AppColors.darkGray),
+                    ),
+                    Text(
+                      '${s.reviewed} reviewed · ${s.mastered} mastered',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.mediumGray,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown for a single-language session — compact language label. WL-610.
+class _SingleLanguageNote extends StatelessWidget {
+  const _SingleLanguageNote({required this.stat});
+  final LanguageSessionStats stat;
+
+  @override
+  Widget build(BuildContext context) {
+    if (stat.languageKey.isEmpty || stat.languageKey == 'unknown') {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: AppColors.primaryTeal.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+            border:
+                Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            stat.languageName,
+            style: AppTypography.labelLarge.copyWith(
+              color: AppColors.primaryTeal,
+              fontSize: 10,
+            ),
           ),
         ),
       ],
@@ -126,18 +224,20 @@ class _CurfewBanner extends StatelessWidget {
     if (curfewStatus.isNormal) {
       return Text(
         'Curfew: ${curfewStatus.curfewTimeLabel}. ${curfewStatus.countdownLabel}',
-        style: AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
+        style:
+            AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
         textAlign: TextAlign.center,
       );
     }
 
-    final color = curfewStatus.isIce ? AppColors.iceTeal : AppColors.error;
+    final color =
+        curfewStatus.isIce ? AppColors.iceTeal : AppColors.error;
     final bg = curfewStatus.isIce
         ? AppColors.iceBackground
         : AppColors.error.withValues(alpha: 0.08);
     final message = curfewStatus.isIce
-        ? 'Ice State. ${curfewStatus.countdownLabel} Complete more sessions before Curfew.'
-        : 'Curfew passed. Your streak is at risk. Complete a session now.';
+        ? 'Ice State. ${curfewStatus.countdownLabel} Complete before Curfew.'
+        : 'Curfew passed. Your streak is at risk.';
 
     return Container(
       padding: EdgeInsets.all(AppSpacing.md),

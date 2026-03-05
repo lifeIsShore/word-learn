@@ -1,4 +1,5 @@
 /// A word in the Active Batch with SRS state. PRD: 200-word limit per language.
+/// [languageKey] is the LanguageConfig.key, e.g. 'de_b2'. Added in WL-610.
 class BatchEntry {
   const BatchEntry({
     required this.id,
@@ -12,6 +13,7 @@ class BatchEntry {
     this.repetitions = 0,
     required this.addedAt,
     this.isNewToday = false,
+    this.languageKey = 'de_b2',
   });
 
   final String id;
@@ -27,6 +29,9 @@ class BatchEntry {
 
   /// True if this word was added during today's drip — shown as "NEW" badge.
   final bool isNewToday;
+
+  /// Language config key this word belongs to, e.g. 'de_b2'. WL-610.
+  final String languageKey;
 
   /// Difficulty colour: green (easy) ≥2.2, orange (medium) 1.8–2.2, red (hard) <1.8.
   String get difficultyLevel {
@@ -78,6 +83,7 @@ class BatchEntry {
     int? repetitions,
     DateTime? addedAt,
     bool? isNewToday,
+    String? languageKey,
   }) {
     return BatchEntry(
       id: id ?? this.id,
@@ -91,6 +97,7 @@ class BatchEntry {
       repetitions: repetitions ?? this.repetitions,
       addedAt: addedAt ?? this.addedAt,
       isNewToday: isNewToday ?? this.isNewToday,
+      languageKey: languageKey ?? this.languageKey,
     );
   }
 }

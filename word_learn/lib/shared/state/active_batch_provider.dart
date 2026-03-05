@@ -8,57 +8,59 @@ import 'vault_provider.dart';
 
 const int _batchCapacity = 200;
 
-final activeBatchProvider =
-    NotifierProvider<ActiveBatchNotifier, List<BatchEntry>>(ActiveBatchNotifier.new);
+// ── Per-language batch provider (WL-610) ──────────────────────────────────────
 
-class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
+/// Family provider: one independent [LanguageBatchNotifier] per [LanguageConfig].
+///
+/// Each language gets its own isolated 200-word Active Batch with independent
+/// SRS state. Language configs are compared by [LanguageConfig.key] so the
+/// family lookup is stable.
+///
+/// Usage:
+///   ref.watch(languageBatchProvider(config))
+///   ref.read(languageBatchProvider(config).notifier)
+final languageBatchProvider = NotifierProviderFamily<
+    LanguageBatchNotifier, List<BatchEntry>, LanguageConfig>(
+  LanguageBatchNotifier.new,
+);
+
+class LanguageBatchNotifier
+    extends FamilyNotifier<List<BatchEntry>, LanguageConfig> {
+  /// The LanguageConfig this batch belongs to — set by Riverpod family arg.
+  late LanguageConfig _config;
+
   @override
-  List<BatchEntry> build() {
+  List<BatchEntry> build(LanguageConfig arg) {
+    _config = arg;
     return _seedInitialBatch();
   }
 
-  // ── Capacity ──────────────────────────────────────────────────────────────
+  // ── Capacity ───────────────────────────────────────────────────────────────
 
   int get capacity => _batchCapacity;
-
   bool get isFull => state.length >= _batchCapacity;
-
   int get remainingCapacity => _batchCapacity - state.length;
-
-  /// True when batch is at or above 90 % capacity — used for Home warning.
   bool get isNearCapacity => state.length >= (_batchCapacity * 0.9).round();
 
-  // ── Daily Drip (WL-150) ───────────────────────────────────────────────────
+  // ── Daily Drip ─────────────────────────────────────────────────────────────
 
-  /// Inject [count] new words into the batch.
-  ///
-  /// Pass [config] (WL-600) to load from the correct language asset.
-  /// Falls back to German B2 if no config is provided (legacy / dev mode).
-  /// Skips words already present, respects 200-word capacity cap (WL-160).
-  /// Returns how many words were actually added.
-  int injectDrip({
-    int count = 20,
-    LanguageConfig? config,
-    // Legacy params kept for backward compatibility:
-    String targetLanguage = 'de',
-    String cefrLevel = 'b2',
-  }) {
+  /// Inject [count] new words from this batch's language config.
+  /// Skips duplicates and respects 200-word cap.
+  /// Returns the number of words actually added.
+  int injectDrip({int count = 20}) {
     if (isFull) return 0;
 
-    final langCode = config?.languageCode ?? targetLanguage;
-    final level = config?.cefrLevel.toLowerCase() ?? cefrLevel;
-
     final available = VocabularyRepository.getWords(
-      languageCode: langCode,
-      cefrLevel: level,
+      languageCode: _config.languageCode,
+      cefrLevel: _config.cefrLevel.toLowerCase(),
     );
 
     final existingIds = state.map((e) => e.id).toSet();
-    final candidates = available
-        .where((w) => !existingIds.contains(w.id))
-        .toList();
+    final candidates =
+        available.where((w) => !existingIds.contains(w.id)).toList();
 
-    final toAdd = candidates.take(remainingCapacity.clamp(0, count)).toList();
+    final toAdd =
+        candidates.take(remainingCapacity.clamp(0, count)).toList();
     if (toAdd.isEmpty) return 0;
 
     final now = DateTime.now();
@@ -70,15 +72,15 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
           exampleTranslation: w.exampleTranslation,
           addedAt: now,
           isNewToday: true,
+          languageKey: _config.key,
         ));
 
     state = [...state, ...newEntries];
     return toAdd.length;
   }
 
-  // ── SRS update (WL-140) ───────────────────────────────────────────────────
+  // ── SRS update ─────────────────────────────────────────────────────────────
 
-  /// Apply SM-2 rating from a session to the matching batch entry.
   void applyRating(String cardId, DifficultyRating rating) {
     final quality = _ratingToQuality(rating);
     state = [
@@ -100,13 +102,12 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
     }
   }
 
-  // ── Batch mutations ───────────────────────────────────────────────────────
+  // ── Mutations ──────────────────────────────────────────────────────────────
 
   void remove(String id) {
     state = state.where((e) => e.id != id).toList();
   }
 
-  /// Move a word to the Vault (manual graduation or EASY auto-graduate). WL-170.
   void moveToVault(String id) {
     final match = state.where((e) => e.id == id).toList();
     if (match.isNotEmpty) {
@@ -115,16 +116,19 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
     }
   }
 
-  /// Clear the "isNewToday" flag at end of day / on next session start.
   void clearNewTodayFlags() {
     state = [for (final e in state) e.copyWith(isNewToday: false)];
   }
 
-  // ── Seed ─────────────────────────────────────────────────────────────────
+  // ── Seed ───────────────────────────────────────────────────────────────────
 
   List<BatchEntry> _seedInitialBatch() {
     final now = DateTime.now();
-    final words = VocabularyRepository.getSampleWords(); // falls back to de_b2 cache
+    final words = VocabularyRepository.getWords(
+      languageCode: _config.languageCode,
+      cefrLevel: _config.cefrLevel.toLowerCase(),
+    ).take(10).toList();
+
     return words.asMap().entries.map((entry) {
       final i = entry.key;
       final w = entry.value;
@@ -138,7 +142,69 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
         easeFactor: 2.5,
         addedAt: now.subtract(Duration(days: words.length - i)),
         isNewToday: false,
+        languageKey: _config.key,
       );
     }).toList();
   }
+}
+
+// ── Legacy single-language provider (kept for backward compat) ────────────────
+//
+// Pre-WL-610 code reads activeBatchProvider directly. We keep it pointing
+// to the German B2 batch so existing call-sites continue working while the
+// rest of the app is migrated to languageBatchProvider.
+
+final activeBatchProvider =
+    NotifierProvider<ActiveBatchNotifier, List<BatchEntry>>(
+  ActiveBatchNotifier.new,
+);
+
+/// Thin wrapper that delegates to the German B2 language batch.
+/// All pre-WL-610 code that reads activeBatchProvider continues to work.
+/// New code should use [languageBatchProvider] with an explicit config.
+class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
+  static final _fallbackConfig = LanguageConfig(
+    languageCode: 'de',
+    cefrLevel: 'B2',
+    assetPath: 'assets/data/de_b2.csv',
+    languageName: 'German',
+    wordColumnHeader: 'German Word',
+  );
+
+  @override
+  List<BatchEntry> build() {
+    // Mirror the de_b2 language batch so activeBatchProvider stays in sync.
+    return ref.watch(languageBatchProvider(_fallbackConfig));
+  }
+
+  LanguageBatchNotifier get _delegate =>
+      ref.read(languageBatchProvider(_fallbackConfig).notifier);
+
+  int get capacity => _delegate.capacity;
+  bool get isFull => _delegate.isFull;
+  int get remainingCapacity => _delegate.remainingCapacity;
+  bool get isNearCapacity => _delegate.isNearCapacity;
+
+  int injectDrip({
+    int count = 20,
+    LanguageConfig? config,
+    String targetLanguage = 'de',
+    String cefrLevel = 'b2',
+  }) {
+    if (config != null) {
+      return ref
+          .read(languageBatchProvider(config).notifier)
+          .injectDrip(count: count);
+    }
+    return _delegate.injectDrip(count: count);
+  }
+
+  void applyRating(String cardId, DifficultyRating rating) =>
+      _delegate.applyRating(cardId, rating);
+
+  void remove(String id) => _delegate.remove(id);
+
+  void moveToVault(String id) => _delegate.moveToVault(id);
+
+  void clearNewTodayFlags() => _delegate.clearNewTodayFlags();
 }

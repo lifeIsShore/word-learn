@@ -28,7 +28,7 @@
 | — | Ghost Backup (Cloud Sync) | WL-500 | P0, 5 pts |
 | — | Conflict Resolution (Multi-Device Sync) | WL-510 | P1, 3 pts |
 | — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
-| — | Multi-Language Study Sessions | WL-610 | P1, 4 pts |
+| — | ~~Multi-Language Study Sessions~~ | ~~WL-610~~ | ~~P1, 4 pts~~ |
 
 ---
 
@@ -44,6 +44,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-610: Multi-Language Study Sessions (per-language batch isolation, language-tagged SRS, multi-language session, per-language stats) | 2026-03-05 | languageBatchProvider family; language badge on flashcard; per-lang breakdown in summary |
 | — | WL-600: Language Configuration & Loading (asset CSV loader, VocabularyLoader, LanguageConfig, ActiveLanguageProvider, language switcher) | 2026-03-05 | Asset-based; splash warms cache; drip + settings wired |
 | — | WL-400: Settings Screen (Profile · Learning · Appearance · Stats · Privacy · Account) | 2026-03-05 | SettingsState, SettingsNotifier, reactive ThemeMode |
 | — | WL-410: Privacy toggles (shareLearningData, allowCrashReports) in Settings | 2026-03-05 | Bundled with WL-400 |
@@ -240,6 +241,31 @@
 
 **Next session**
 - WL-610: Multi-Language Study Sessions (per-language batch isolation, language-scoped SRS).
+
+---
+
+### Session: 2026-03-05 (Session 8 — WL-610: Multi-Language Study Sessions)
+
+**What was done**
+- **`BatchEntry.languageKey`**: New field (default `'de_b2'`). Tags every batch word with its source language config key. `copyWith` updated.
+- **`FlashcardItem.languageKey`**: New field (default `''`). Carried through from `BatchEntry` into the session card so the session screen can display the language badge and route SRS updates correctly.
+- **`LanguageBatchNotifier` + `languageBatchProvider` (family)**: Core of WL-610. `NotifierProviderFamily<LanguageBatchNotifier, List<BatchEntry>, LanguageConfig>` — one independent 200-word Active Batch with isolated SRS state per `LanguageConfig`. `injectDrip()`, `applyRating()`, `moveToVault()`, `remove()`, `clearNewTodayFlags()` all operate on the correct per-language pool. Seeds 10 words from the cache for each language on first build.
+- **`ActiveBatchNotifier` (refactored)**: Now a thin delegation wrapper pointing to the `de_b2` language batch via `languageBatchProvider`. All pre-WL-610 call sites (`HomeScreen`, `BatchScreen`, `SessionNotifier` fallback) continue to compile and work without changes.
+- **`SessionState` (updated)**: `SessionCardResult` gains `languageKey`. `perLanguageStats` computed property returns `Map<String, LanguageSessionStats>`. `isMultiLanguage` bool. `LanguageSessionStats` value object (languageKey, languageName, reviewed, mastered).
+- **`SessionNotifier` (updated)**: `startSession()` accepts `config` (single language) or `configs` (multi-language list). Per-language batches drawn from `languageBatchProvider(cfg)`, interleaved, shuffled, capped at `maxCards`. `submitRating()` now routes SRS update to the correct `languageBatchProvider` by matching card's `languageKey` against `kAvailableLanguageConfigs`.
+- **`SessionScreen` (updated)**: `_FrontContent` uses a `Stack`; `_LanguageBadge` positioned top-right shows 'DE B2' / 'ES B2' etc. Only rendered when `card.languageKey` is non-empty.
+- **`SessionCompleteScreen` (updated)**: Shows `_LanguageBreakdown` (per-language reviewed/mastered) for multi-language sessions. Shows `_SingleLanguageNote` (language pill) for single-language sessions.
+- **`HomeScreen` (updated)**: `startSession()` call now passes `config: activeLang`. Stats card reads from `languageBatchProvider(activeLang)` when active language is set.
+- **`BatchScreen` (updated)**: Reads `languageBatchProvider(activeLang)` when active language is set. AppBar title shows `'Batch · German B2'`.
+
+**Decisions**
+- `ActiveBatchNotifier` kept as a delegation wrapper (not removed) to avoid breaking any remaining legacy references. The wrapper mirrors `languageBatchProvider(de_b2)` via `ref.watch`, so it stays reactive.
+- Per-language batch capacity is 200 words each — not shared across languages. A user with German B2 + Spanish B2 can have up to 400 words total across both pools.
+- Multi-language session mode (`configs: [de, es]`) is wired in `SessionNotifier` but not yet exposed in the UI as a toggle — that is intentional per PRD priority order. The toggle can be added as a follow-on with zero changes to the session logic.
+- SRS routing in `submitRating` uses `kAvailableLanguageConfigs` as the lookup table; unknown language keys fall back to the legacy `activeBatchProvider` gracefully.
+
+**Next session**
+- WL-500: Ghost Backup / Data Persistence (SQLite + SQLCipher local storage; persist batch, vault, streak, settings across restarts).
 
 ---
 

@@ -154,11 +154,18 @@ class _FrontContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
+    return Stack(
+      children: [
+        // Language badge — top right (WL-610)
+        if (card.languageKey.isNotEmpty)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: _LanguageBadge(languageKey: card.languageKey),
+          ),
+        // Word centred
+        Center(
+          child: Text(
             card.word,
             style: AppTypography.displayMedium.copyWith(
               color: AppColors.darkGray,
@@ -166,10 +173,53 @@ class _FrontContent extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Small language badge shown on the flashcard front. WL-610.
+class _LanguageBadge extends StatelessWidget {
+  const _LanguageBadge({required this.languageKey});
+  final String languageKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = languageKey.split('_');
+    final lang = parts.isNotEmpty ? _langNames[parts[0]] ?? parts[0].toUpperCase() : '?';
+    final cefr = parts.length > 1 ? parts[1].toUpperCase() : '';
+    final label = cefr.isEmpty ? lang : '$lang $cefr';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTeal.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: AppColors.primaryTeal.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primaryTeal,
+          letterSpacing: 0.6,
+        ),
       ),
     );
   }
+
+  static const _langNames = {
+    'de': 'DE',
+    'es': 'ES',
+    'fr': 'FR',
+    'it': 'IT',
+    'tr': 'TR',
+    'en': 'EN',
+  };
 }
 
 class _BackContent extends StatelessWidget {
