@@ -27,7 +27,7 @@
 | — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
 | — | Ghost Backup (Cloud Sync) | WL-500 | P0, 5 pts |
 | — | Conflict Resolution (Multi-Device Sync) | WL-510 | P1, 3 pts |
-| — | Language Configuration & Loading | WL-600 | P0, 4 pts |
+| — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
 | — | Multi-Language Study Sessions | WL-610 | P1, 4 pts |
 
 ---
@@ -36,7 +36,7 @@
 
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
-| — | Language Configuration & Loading | — | — | WL-600 — next in line |
+
 
 ---
 
@@ -44,6 +44,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-600: Language Configuration & Loading (asset CSV loader, VocabularyLoader, LanguageConfig, ActiveLanguageProvider, language switcher) | 2026-03-05 | Asset-based; splash warms cache; drip + settings wired |
 | — | WL-400: Settings Screen (Profile · Learning · Appearance · Stats · Privacy · Account) | 2026-03-05 | SettingsState, SettingsNotifier, reactive ThemeMode |
 | — | WL-410: Privacy toggles (shareLearningData, allowCrashReports) in Settings | 2026-03-05 | Bundled with WL-400 |
 | — | app.dart: reactive theme (ConsumerWidget, themeMode from settingsProvider) | 2026-03-05 | Light → Dark → System toggle live |
@@ -214,7 +215,31 @@
 - WL-410 (Privacy Controls) is fully implemented within WL-400 — closing both stories.
 
 **Next session**
-- WL-600: Language Configuration & Loading (asset-based CSV, per-language batch isolation, language switcher).
+- WL-610: Multi-Language Study Sessions (per-language batch isolation, language-scoped SRS).
+
+---
+
+### Session: 2026-03-05 (Session 7 — WL-600: Language Configuration & Loading)
+
+**What was done**
+- **`LanguageConfig` model** (`shared/models/language_config.dart`): Describes a language × CEFR asset entry (languageCode, cefrLevel, assetPath, languageName, wordColumnHeader). Central registry `kAvailableLanguageConfigs` lists all 3 currently available CSVs (de_B2, de_C1, es_B2). `findLanguageConfig()` utility for lookup.
+- **`VocabularyLoader`** (`shared/data/vocabulary_loader.dart`): Async asset-based CSV loader using `rootBundle.loadString()`. In-memory cache keyed by `config.key`. RFC 4180-compliant CSV parser (handles embedded commas, escaped double-quotes). Exposes `cachedWords()` for synchronous read-after-warm. Riverpod `FutureProvider.family<List<FlashcardItem>, LanguageConfig>` for Riverpod-native consumers.
+- **`VocabularyRepository` (updated)**: Now a thin synchronous facade over `VocabularyLoader` cache. `warmUp(config)` delegates to loader. `getWords()` returns from cache (empty + assert on miss). Backward-compatible API; no changes needed in `ActiveBatchNotifier` or `SessionNotifier`.
+- **`pubspec.yaml`**: Registered `assets/data/de_b2.csv`, `assets/data/de_c1.csv`, `assets/data/es_b2.csv`.
+- **`SplashScreen` (updated)**: Converted to `ConsumerStatefulWidget`. During splash delay, warms cache for all `kAvailableLanguageConfigs` in parallel (`Future.wait`). Subtle `CircularProgressIndicator` shown during load.
+- **`ActiveLanguageProvider`** (`shared/state/active_language_provider.dart`): `NotifierProvider<ActiveLanguageNotifier, LanguageConfig?>`. Derives initial state from `onboardingProvider` (first target language + its CEFR level). `switchTo(config)`, `switchToByKey()`. `availableForUser()` filters `kAvailableLanguageConfigs` to the user's chosen target languages.
+- **`HomeScreen` (updated)**: Watches `activeLanguageProvider`. Language switcher chips rendered above stats card — single-language users see a pill label; multi-language users see animated tappable chips. Drip button now passes `config: activeLang` to `injectDrip()`. Snackbar includes language name. Stats card shows "Studying: German B2" row.
+- **`SettingsScreen` (updated)**: Profile section shows Active Study Language. Multi-language users get a `DropdownButton` picker; single-language users get a read-only row. Writes to `activeLanguageProvider` via `switchTo()`.
+- **`ActiveBatchNotifier.injectDrip` (updated)**: Accepts `LanguageConfig? config` param. Derives `langCode`/`level` from config, falls back to legacy string params for backward compatibility.
+
+**Decisions**
+- Cache warm-up happens at splash for all registered configs (not just user's chosen ones). Overhead is minimal (~3 CSVs, <100 words each). This ensures zero-latency on first drip.
+- `VocabularyRepository` kept as a sync facade (not deleted) to avoid refactoring `ActiveBatchNotifier._seedInitialBatch()` which runs synchronously during Riverpod build. Seed will be async-refactored in WL-610.
+- `activeLanguageProvider` re-derives from `onboardingProvider` on build — so if the user changes target languages in onboarding, active language resets correctly.
+- Batch isolation per language (separate 200-word pools per lang) is deferred to WL-610. Currently all languages share one batch pool; language config controls which words are *injected* via drip.
+
+**Next session**
+- WL-610: Multi-Language Study Sessions (per-language batch isolation, language-scoped SRS).
 
 ---
 

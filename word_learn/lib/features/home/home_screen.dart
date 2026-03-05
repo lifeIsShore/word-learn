@@ -9,7 +9,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../features/curfew/ice_state_banner.dart';
+import '../../shared/models/language_config.dart';
 import '../../shared/state/active_batch_provider.dart';
+import '../../shared/state/active_language_provider.dart';
 import '../../shared/state/curfew_status_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/session_provider.dart';
@@ -17,7 +19,7 @@ import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
 import '../../shared/state/vault_provider.dart';
 
-/// Home screen — WL-050 + WL-200 (Curfew enforcement) + WL-210 (Ice State).
+/// Home screen — WL-050, WL-200 (Curfew), WL-210 (Ice State), WL-600 (Language switcher).
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -44,7 +46,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.dispose();
   }
 
-  /// On app resume, re-run ash check in case the user left the app overnight.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -52,7 +53,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  /// Check whether Ash should fire and redirect if so. WL-220.
   void _checkAsh() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -67,13 +67,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
   }
 
-  /// Refresh curfew status every 60 seconds for live countdown. WL-210.
   void _startCurfewTimer() {
     _curfewTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) {
-        // Invalidate by triggering a rebuild — curfewStatusProvider recomputes.
-        ref.invalidate(curfewStatusProvider);
-      }
+      if (mounted) ref.invalidate(curfewStatusProvider);
     });
   }
 
@@ -86,6 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final vaultCount = ref.watch(vaultProvider).length;
     final streak = ref.watch(streakProvider);
     final curfewStatus = ref.watch(curfewStatusProvider);
+    final activeLang = ref.watch(activeLanguageProvider);
 
     final now = DateTime.now();
     final dueCount = batch
@@ -121,10 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       body: IceStateScaffoldBackground(
         child: Column(
           children: [
-            // ── Ice State / Past-Curfew banner (WL-210) ──────────────
             const IceStateBanner(),
-
-            // ── Main content ──────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(AppSpacing.xl),
@@ -138,6 +132,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                     SizedBox(height: AppSpacing.xl),
 
+                    // ── WL-600: Language Switcher ─────────────────────
+                    _LanguageSwitcher(activeLang: activeLang),
+                    SizedBox(height: AppSpacing.md),
+
                     // ── Daily Stats Card ──────────────────────────────
                     _StatsCard(
                       batchTotal: batch.length,
@@ -148,11 +146,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       streak: streak.currentStreak,
                       curfewStatus: curfewStatus,
                       isNearCapacity: batchNotifier.isNearCapacity,
+                      activeLang: activeLang,
                     ),
 
                     SizedBox(height: AppSpacing.xl),
 
-                    // ── Capacity warning ──────────────────────────────
                     if (batchNotifier.isNearCapacity)
                       _CapacityWarning(
                         current: batch.length,
@@ -161,7 +159,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     if (batchNotifier.isNearCapacity)
                       SizedBox(height: AppSpacing.md),
 
-                    // ── Session done badge ────────────────────────────
                     if (streak.sessionCompletedToday)
                       _SessionDoneBadge(streak: streak.currentStreak),
                     if (streak.sessionCompletedToday)
@@ -191,15 +188,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                     SizedBox(height: AppSpacing.md),
 
-                    // ── Daily Drip ────────────────────────────────────
+                    // ── Daily Drip (WL-600 wired) ─────────────────────
                     OutlinedButton.icon(
                       onPressed: () {
                         final added = ref
                             .read(activeBatchProvider.notifier)
                             .injectDrip(
                               count: onboarding.dailyDripCount,
+                              config: activeLang, // WL-600: pass active lang
                             );
-                        _showDripSnackbar(context, added);
+                        _showDripSnackbar(context, added, activeLang);
                       },
                       icon: const Icon(Icons.water_drop, size: 18),
                       label: Text(
@@ -235,9 +233,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  void _showDripSnackbar(BuildContext context, int added) {
+  void _showDripSnackbar(
+      BuildContext context, int added, LanguageConfig? config) {
+    final langLabel =
+        config != null ? '${config.languageName} ${config.cefrLevel}' : '';
     final msg = added > 0
-        ? '$added new words added to your batch.'
+        ? '$added new $langLabel words added to your batch.'
         : 'Batch is full or no new words available.';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -245,6 +246,113 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         duration: const Duration(seconds: 3),
         backgroundColor:
             added > 0 ? AppColors.primaryTeal : AppColors.mediumGray,
+      ),
+    );
+  }
+}
+
+// ── Language Switcher (WL-600) ────────────────────────────────────────────────
+
+class _LanguageSwitcher extends ConsumerWidget {
+  const _LanguageSwitcher({required this.activeLang});
+  final LanguageConfig? activeLang;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final langNotifier = ref.read(activeLanguageProvider.notifier);
+    final available = langNotifier.availableForUser();
+
+    // If the user has only one language (or none), show a compact label only.
+    if (available.length <= 1) {
+      return _LangPill(
+        config: activeLang,
+        onTap: null,
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: available.map((config) {
+          final isActive = activeLang?.key == config.key;
+          return Padding(
+            padding: EdgeInsets.only(right: AppSpacing.sm),
+            child: _LangChip(
+              config: config,
+              isActive: isActive,
+              onTap: () => langNotifier.switchTo(config),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _LangChip extends StatelessWidget {
+  const _LangChip({
+    required this.config,
+    required this.isActive,
+    required this.onTap,
+  });
+  final LanguageConfig config;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.primaryTeal : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? AppColors.primaryTeal : AppColors.lightGray,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          '${config.languageName} ${config.cefrLevel}',
+          style: AppTypography.labelLarge.copyWith(
+            fontSize: 12,
+            color: isActive ? Colors.white : AppColors.mediumGray,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LangPill extends StatelessWidget {
+  const _LangPill({required this.config, required this.onTap});
+  final LanguageConfig? config;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (config == null) return const SizedBox.shrink();
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTeal.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        '${config!.languageName} ${config!.cefrLevel}',
+        style: AppTypography.labelLarge.copyWith(
+          fontSize: 12,
+          color: AppColors.primaryTeal,
+        ),
       ),
     );
   }
@@ -262,6 +370,7 @@ class _StatsCard extends StatelessWidget {
     required this.streak,
     required this.curfewStatus,
     required this.isNearCapacity,
+    required this.activeLang,
   });
 
   final int batchTotal;
@@ -272,6 +381,7 @@ class _StatsCard extends StatelessWidget {
   final int streak;
   final CurfewStatus curfewStatus;
   final bool isNearCapacity;
+  final LanguageConfig? activeLang;
 
   @override
   Widget build(BuildContext context) {
@@ -299,6 +409,12 @@ class _StatsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
+          if (activeLang != null)
+            _StatRow(
+              label: 'Studying',
+              value: '${activeLang!.languageName} ${activeLang!.cefrLevel}',
+              valueColor: AppColors.primaryTeal,
+            ),
           _StatRow(label: 'Batch', value: '$batchTotal / $capacity words'),
           _StatRow(label: 'Due for review', value: '$dueCount'),
           _StatRow(label: 'New today', value: '$newTodayCount'),
@@ -363,8 +479,6 @@ class _StatRow extends StatelessWidget {
   }
 }
 
-// ── Session done badge ────────────────────────────────────────────────────────
-
 class _SessionDoneBadge extends StatelessWidget {
   const _SessionDoneBadge({required this.streak});
   final int streak;
@@ -395,8 +509,6 @@ class _SessionDoneBadge extends StatelessWidget {
     );
   }
 }
-
-// ── Capacity warning ──────────────────────────────────────────────────────────
 
 class _CapacityWarning extends StatelessWidget {
   const _CapacityWarning({required this.current, required this.capacity});

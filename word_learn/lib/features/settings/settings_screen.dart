@@ -7,6 +7,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/constants/app_languages.dart';
+import '../../shared/models/language_config.dart';
+import '../../shared/state/active_language_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
@@ -21,6 +23,9 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final onboarding = ref.watch(onboardingProvider);
     final streak = ref.watch(streakProvider);
+    final activeLang = ref.watch(activeLanguageProvider);
+    final langNotifier = ref.read(activeLanguageProvider.notifier);
+    final availableLangs = langNotifier.availableForUser();
 
     final baseLang = kAppLanguages
         .firstWhere((l) => l.code == onboarding.baseLanguageCode,
@@ -56,6 +61,19 @@ class SettingsScreen extends ConsumerWidget {
             label: 'Target Languages',
             value: targetLangs.isEmpty ? 'None selected' : targetLangs,
           ),
+          // WL-600: Active study language picker
+          if (availableLangs.length > 1)
+            _LanguagePickerRow(
+              label: 'Active Study Language',
+              available: availableLangs,
+              active: activeLang,
+              onSelected: langNotifier.switchTo,
+            )
+          else if (activeLang != null)
+            _ReadOnlyRow(
+              label: 'Active Study Language',
+              value: '${activeLang.languageName} ${activeLang.cefrLevel}',
+            ),
           _Divider(),
 
           // ── LEARNING ─────────────────────────────────────────────────
@@ -450,6 +468,49 @@ class _SliderRow extends StatelessWidget {
           onChanged: onChanged,
         ),
       ],
+    );
+  }
+}
+
+// ── Language Picker Row (WL-600) ─────────────────────────────────────────────
+
+class _LanguagePickerRow extends StatelessWidget {
+  const _LanguagePickerRow({
+    required this.label,
+    required this.available,
+    required this.active,
+    required this.onSelected,
+  });
+  final String label;
+  final List<LanguageConfig> available;
+  final LanguageConfig? active;
+  final ValueChanged<LanguageConfig> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      title: Text(label,
+          style: AppTypography.bodyMedium.copyWith(color: AppColors.darkGray)),
+      trailing: DropdownButton<String>(
+        value: active?.key,
+        underline: const SizedBox.shrink(),
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.primaryTeal),
+        items: available.map((c) {
+          return DropdownMenuItem<String>(
+            value: c.key,
+            child: Text('${c.languageName} ${c.cefrLevel}'),
+          );
+        }).toList(),
+        onChanged: (key) {
+          if (key == null) return;
+          final match = available.firstWhere(
+            (c) => c.key == key,
+            orElse: () => available.first,
+          );
+          onSelected(match);
+        },
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/vocabulary_repository.dart';
 import '../models/batch_entry.dart';
+import '../models/language_config.dart';
 import 'session_state.dart';
 import 'vault_provider.dart';
 
@@ -29,20 +30,27 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
 
   // ── Daily Drip (WL-150) ───────────────────────────────────────────────────
 
-  /// Inject [count] new words into the batch from the vocabulary for
-  /// [targetLanguage] / [cefrLevel], skipping words already present.
-  /// Respects the 200-word capacity cap (WL-160).
+  /// Inject [count] new words into the batch.
+  ///
+  /// Pass [config] (WL-600) to load from the correct language asset.
+  /// Falls back to German B2 if no config is provided (legacy / dev mode).
+  /// Skips words already present, respects 200-word capacity cap (WL-160).
   /// Returns how many words were actually added.
   int injectDrip({
     int count = 20,
+    LanguageConfig? config,
+    // Legacy params kept for backward compatibility:
     String targetLanguage = 'de',
     String cefrLevel = 'b2',
   }) {
     if (isFull) return 0;
 
+    final langCode = config?.languageCode ?? targetLanguage;
+    final level = config?.cefrLevel.toLowerCase() ?? cefrLevel;
+
     final available = VocabularyRepository.getWords(
-      targetLanguage: targetLanguage,
-      cefrLevel: cefrLevel,
+      languageCode: langCode,
+      cefrLevel: level,
     );
 
     final existingIds = state.map((e) => e.id).toSet();
@@ -116,7 +124,7 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
 
   List<BatchEntry> _seedInitialBatch() {
     final now = DateTime.now();
-    final words = VocabularyRepository.getSampleWords();
+    final words = VocabularyRepository.getSampleWords(); // falls back to de_b2 cache
     return words.asMap().entries.map((entry) {
       final i = entry.key;
       final w = entry.value;
