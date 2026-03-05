@@ -23,7 +23,7 @@
 | — | Subscription Entitlements & Feature Gating | WL-310 | P0; **deferred** |
 | — | Vault Audit & Re-Validation (Quarterly) | WL-190 | P2, 4 pts — **deferred** |
 
-| — | User Profile & Settings Screen | WL-400 | P1, 4 pts |
+
 | — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
 | — | Ghost Backup (Cloud Sync) | WL-500 | P0, 5 pts |
 | — | Conflict Resolution (Multi-Device Sync) | WL-510 | P1, 3 pts |
@@ -36,7 +36,7 @@
 
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
-| — | User Profile & Settings Screen | — | — | WL-400 — next in line |
+| — | Language Configuration & Loading | — | — | WL-600 — next in line |
 
 ---
 
@@ -44,6 +44,10 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-400: Settings Screen (Profile · Learning · Appearance · Stats · Privacy · Account) | 2026-03-05 | SettingsState, SettingsNotifier, reactive ThemeMode |
+| — | WL-410: Privacy toggles (shareLearningData, allowCrashReports) in Settings | 2026-03-05 | Bundled with WL-400 |
+| — | app.dart: reactive theme (ConsumerWidget, themeMode from settingsProvider) | 2026-03-05 | Light → Dark → System toggle live |
+| — | Home: settings gear icon in AppBar, displayName greeting | 2026-03-05 | — |
 | — | WL-200: Curfew Enforcement (reactive status, streak integration, live countdown) | 2026-03-05 | CurfewStatusProvider, CurfewPhase enum |
 | — | WL-210: Ice State (banner, scaffold bg tint, session button colour shift) | 2026-03-05 | IceStateBanner + IceStateScaffoldBackground widgets |
 | — | WL-220: Ash Protocol (AshScreen, streak reset on startup, acknowledgeAsh) | 2026-03-05 | /ash route; dark full-screen modal |
@@ -190,6 +194,27 @@
 
 **Next session**
 - WL-400: User Profile & Settings Screen (curfew edit, drip slider, theme toggle, language management).
+
+---
+
+### Session: 2026-03-05 (Session 6 — Settings Screen)
+
+**What was done**
+- **SettingsState + SettingsNotifier (WL-400):** Owns `displayName`, `themeMode`, `shareLearningData`, `allowCrashReports`. Clean `copyWith` pattern, Riverpod `NotifierProvider`.
+- **SettingsScreen (WL-400):** Six grouped sections — Profile (display name edit dialog, base/target lang read-only), Learning (curfew time picker, drip slider — both write back to `onboardingProvider`), Appearance (3-way theme segmented button: Light/Dark/System), Stats (streak, longest streak, CEFR per language), Privacy (WL-410: two toggle switches), Account (subscription status, Reset Progress, Delete Account with confirmation dialogs).
+- **Reactive theme (app.dart):** `WordLearnApp` converted to `ConsumerWidget`; `themeMode` from `settingsProvider` passed directly to `MaterialApp.router`. Dark mode (Deep Navy) activates immediately on toggle with zero restarts.
+- **WL-410 bundled:** Privacy toggles (`shareLearningData`, `allowCrashReports`) live in the Privacy section. Delete Account shows correct deferred-auth message.
+- **Home AppBar:** Settings gear icon (⚙) navigates to `/settings`. Greeting reads `settings.displayName` instead of hardcoded "Scholar".
+- **Router:** `/settings` route added.
+
+**Decisions**
+- Drip slider in Settings writes directly to `onboardingProvider.setDailyDrip()` — single source of truth, no duplication.
+- Curfew edit in Settings reuses `showTimePicker` + `onboardingProvider.setCurfew()` — same path as onboarding flow.
+- "Delete Account" is guarded with a deferred-auth message; no destructive action fires until auth is enabled (WL-001–005).
+- WL-410 (Privacy Controls) is fully implemented within WL-400 — closing both stories.
+
+**Next session**
+- WL-600: Language Configuration & Loading (asset-based CSV, per-language batch isolation, language switcher).
 
 ---
 

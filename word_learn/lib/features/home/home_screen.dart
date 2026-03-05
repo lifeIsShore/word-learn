@@ -13,6 +13,7 @@ import '../../shared/state/active_batch_provider.dart';
 import '../../shared/state/curfew_status_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/session_provider.dart';
+import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
 import '../../shared/state/vault_provider.dart';
 
@@ -79,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final onboarding = ref.watch(onboardingProvider);
+    final settings = ref.watch(settingsProvider);
     final batch = ref.watch(activeBatchProvider);
     final batchNotifier = ref.read(activeBatchProvider.notifier);
     final vaultCount = ref.watch(vaultProvider).length;
@@ -108,6 +110,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 : AppColors.primaryTeal,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () => context.go(AppRoutes.settings),
+          ),
+        ],
       ),
       body: IceStateScaffoldBackground(
         child: Column(
@@ -123,7 +132,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome back, Scholar.',
+                      'Welcome back, ${settings.displayName}.',
                       style: AppTypography.displayMedium
                           .copyWith(color: AppColors.darkGray),
                     ),
