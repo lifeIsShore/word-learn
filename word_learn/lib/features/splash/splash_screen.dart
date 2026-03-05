@@ -10,6 +10,7 @@ import '../../shared/data/vocabulary_repository.dart';
 import '../../shared/models/language_config.dart';
 import '../../shared/services/database_service.dart';
 import '../../shared/state/active_batch_provider.dart';
+import '../../shared/state/auth_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
@@ -37,32 +38,43 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initAndNavigate() async {
     // Run DB init + vocab cache warm-up in parallel with the minimum splash.
-    final results = await Future.wait([
+    await Future.wait([
       Future<void>.delayed(const Duration(milliseconds: 1500)),
       _initApp(),
     ]);
 
-    // _initApp returns whether the user has completed onboarding.
-    final hasOnboarded = results[1] as bool;
+    if (!mounted) return;
+
+    // Auth check determines the destination.
+    // In dev mode (devModeSkipAuth=true) this instantly returns and routes to
+    // Home (or onboarding if first launch) without any login screen.
+    final authStartup =
+        await ref.read(authProvider.notifier).checkStartupAuth();
+    final hasOnboarded =
+        ref.read(onboardingProvider).isOnboardingComplete;
 
     if (!mounted) return;
-    if (hasOnboarded) {
-      context.go(AppRoutes.home);
-    } else {
-      context.go(AppRoutes.onboardingWelcome);
+
+    // Routing logic:
+    //   devBypass / sessionRestored → go straight to app (home or onboarding)
+    //   noSession                   → go to auth screen
+    switch (authStartup) {
+      case AuthStartupResult.noSession:
+        context.go(AppRoutes.auth);
+      case AuthStartupResult.devBypass:
+      case AuthStartupResult.sessionRestored:
+        context.go(hasOnboarded ? AppRoutes.home : AppRoutes.onboardingWelcome);
     }
   }
 
   /// Opens DB, loads all persisted state, warms vocabulary cache.
-  /// Returns true if the user has previously completed onboarding.
-  Future<bool> _initApp() async {
+  Future<void> _initApp() async {
     // 1. Open the SQLite database (creates tables on first launch).
     await DatabaseService.instance.database;
 
     // 2. Restore all persisted provider state from SQLite.
     //    Order matters: onboarding → settings → streak → vault → batch
-    final hasOnboarded =
-        await ref.read(onboardingProvider.notifier).init();
+    await ref.read(onboardingProvider.notifier).init();
     await ref.read(settingsProvider.notifier).init();
     await ref.read(streakProvider.notifier).init();
     await ref.read(vaultProvider.notifier).init();
@@ -79,8 +91,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         (cfg) => ref.read(languageBatchProvider(cfg).notifier).init(),
       ),
     );
-
-    return hasOnboarded;
   }
 
   @override

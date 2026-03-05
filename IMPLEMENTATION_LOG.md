@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-05 (Session 10)
+**Last Updated:** 2026-03-05 (Session 11)
 
 ---
 
@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-001/004/005: Flutter auth layer — AuthRepository, AuthNotifier, AuthUser, full sign-in/sign-up UI, dev bypass flag | 2026-03-05 | `devModeSkipAuth=true`; see Session 11 notes |
 | — | WL-001/004/005: Backend auth — FastAPI + PostgreSQL + JWT (signup, signin, refresh, logout, /me). Docker Compose stack with PgAdmin. Self-hosted, no Supabase. | 2026-03-05 | `backend/` directory; see Session 10 notes |
 | — | WL-610: Multi-Language Study Sessions (per-language batch isolation, language-tagged SRS, multi-language session, per-language stats) | 2026-03-05 | languageBatchProvider family; language badge on flashcard; per-lang breakdown in summary |
 | — | WL-600: Language Configuration & Loading (asset CSV loader, VocabularyLoader, LanguageConfig, ActiveLanguageProvider, language switcher) | 2026-03-05 | Asset-based; splash warms cache; drip + settings wired |
@@ -350,3 +351,34 @@ docker compose --profile dev up --build
 - Add `AuthRepository` + `AuthNotifier` (Riverpod) in Flutter.
 - Store JWT tokens with `flutter_secure_storage`.
 - Update `SplashScreen` to check stored token and skip onboarding for returning users.
+
+---
+
+### Session: 2026-03-05 (Session 11 — WL-001/004/005: Flutter Auth Layer + Dev Bypass)
+
+**What was built**
+- `lib/core/config/app_config.dart` — Single config file. `devModeSkipAuth = true` bypasses all auth. `apiBaseUrl` points to the Docker backend. One-line flip to enable real auth before release.
+- `lib/shared/auth/auth_user.dart` — `AuthUser` model + `AuthUser.devMock()` for dev bypass.
+- `lib/shared/auth/auth_repository.dart` — All network + secure-storage operations. Uses `flutter_secure_storage` (hardware-encrypted on Android/iOS). Methods: `signUp`, `signIn`, `refreshTokens`, `signOut`, `fetchMe`, `loadStoredUser`.
+- `lib/shared/state/auth_provider.dart` — `AuthNotifier` (Riverpod `NotifierProvider`). Manages `AuthState` (status, user, error, isLoading). `checkStartupAuth()` is the single entry point called from SplashScreen — handles dev bypass, session restore, and no-session cases.
+- `lib/features/auth/auth_screen.dart` — Full production sign-in/sign-up UI with tab bar, form validation (matches backend rules), error banners, loading states. Dev bypass shows a clear "Auth Disabled" screen if somehow reached.
+- `SplashScreen` updated — calls `checkStartupAuth()` after DB init; routes to `/auth`, `/home`, or `/onboarding/welcome` based on result.
+- `pubspec.yaml` — added `flutter_secure_storage: ^9.2.2` and `http: ^1.2.1`.
+
+**The one toggle**
+```dart
+// lib/core/config/app_config.dart
+static const bool devModeSkipAuth = true;   // ← flip to false for production
+```
+With `true`: splash → home/onboarding, no login, mock user injected into AuthState.
+With `false`: splash → /auth if no stored token, real JWT flow.
+
+**Architecture decisions**
+- `AuthRepository` is a plain singleton (not a Riverpod provider) — it's I/O only, no UI state. Providers call it; UI never calls it directly.
+- Refresh tokens are stored in hardware-encrypted storage (`FlutterSecureStorage`). On token expiry the repository auto-refreshes and retries `/me` once transparently.
+- Password validation in Flutter matches the FastAPI Pydantic validators exactly — no surprise server rejections.
+- `run flutter pub get` after pulling to install the two new packages.
+
+**Next session**
+- WL-500 Phase 2: Ghost Backup — serialize + encrypt + POST to `/api/v1/user/backup` on the FastAPI backend (blocked until auth is enabled, but can scaffold the endpoint now).
+- Or: add the `/api/v1/user/backup` and `/api/v1/user/sessions` endpoints to the backend.
