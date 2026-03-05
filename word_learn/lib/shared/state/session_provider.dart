@@ -177,8 +177,10 @@ class SessionNotifier extends Notifier<SessionState> {
   }
 
   /// Mark session complete: record streak, then clear.
-  void completeAndClear() {
-    ref.read(streakProvider.notifier).recordSessionComplete(DateTime.now());
+  Future<void> completeAndClear() async {
+    await ref
+        .read(streakProvider.notifier)
+        .recordSessionComplete(DateTime.now());
     state = const SessionState();
   }
 

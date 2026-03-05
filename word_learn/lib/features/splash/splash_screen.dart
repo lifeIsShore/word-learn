@@ -8,12 +8,19 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/data/vocabulary_repository.dart';
 import '../../shared/models/language_config.dart';
+import '../../shared/services/database_service.dart';
+import '../../shared/state/active_batch_provider.dart';
+import '../../shared/state/onboarding_provider.dart';
+import '../../shared/state/settings_provider.dart';
+import '../../shared/state/streak_provider.dart';
+import '../../shared/state/vault_provider.dart';
 
-/// Initial screen — logo/title, warms vocabulary cache, then redirects.
+/// Initial screen — logo/title, warms vocabulary cache, initialises DB, then redirects.
 ///
-/// WL-600: During the splash delay, we warm the VocabularyLoader cache for all
-/// registered language configs. This ensures that by the time the user reaches
-/// the Home screen, [VocabularyRepository.getWords()] returns data synchronously.
+/// WL-500: Opens SQLite database and loads all persisted state before any
+/// screen is shown. Ensures zero-flash state restoration.
+///
+/// WL-600: Warms vocabulary cache for all registered language configs.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -29,22 +36,51 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initAndNavigate() async {
-    // Warm vocabulary cache for all available language configs in parallel.
-    // 1.5 s splash gives plenty of time; assets load in ~50-200 ms.
-    await Future.wait([
+    // Run DB init + vocab cache warm-up in parallel with the minimum splash.
+    final results = await Future.wait([
       Future<void>.delayed(const Duration(milliseconds: 1500)),
-      _warmVocabularyCache(),
+      _initApp(),
     ]);
 
+    // _initApp returns whether the user has completed onboarding.
+    final hasOnboarded = results[1] as bool;
+
     if (!mounted) return;
-    context.go(AppRoutes.onboardingWelcome);
+    if (hasOnboarded) {
+      context.go(AppRoutes.home);
+    } else {
+      context.go(AppRoutes.onboardingWelcome);
+    }
   }
 
-  /// Pre-loads all registered language configs into [VocabularyLoader] cache.
-  Future<void> _warmVocabularyCache() async {
+  /// Opens DB, loads all persisted state, warms vocabulary cache.
+  /// Returns true if the user has previously completed onboarding.
+  Future<bool> _initApp() async {
+    // 1. Open the SQLite database (creates tables on first launch).
+    await DatabaseService.instance.database;
+
+    // 2. Restore all persisted provider state from SQLite.
+    //    Order matters: onboarding → settings → streak → vault → batch
+    final hasOnboarded =
+        await ref.read(onboardingProvider.notifier).init();
+    await ref.read(settingsProvider.notifier).init();
+    await ref.read(streakProvider.notifier).init();
+    await ref.read(vaultProvider.notifier).init();
+
+    // 3. Warm vocabulary cache for all language configs.
     await Future.wait(
       kAvailableLanguageConfigs.map(VocabularyRepository.warmUp),
     );
+
+    // 4. Init batch for each available language config.
+    //    This loads from DB (or seeds if first launch).
+    await Future.wait(
+      kAvailableLanguageConfigs.map(
+        (cfg) => ref.read(languageBatchProvider(cfg).notifier).init(),
+      ),
+    );
+
+    return hasOnboarded;
   }
 
   @override
@@ -69,7 +105,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
             ),
             SizedBox(height: AppSpacing.xxl),
-            // Subtle loading indicator while cache warms.
             SizedBox(
               width: 20,
               height: 20,

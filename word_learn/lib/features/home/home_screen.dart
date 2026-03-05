@@ -54,13 +54,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _checkAsh() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final curfew = ref.read(onboardingProvider).curfew;
-      ref.read(streakProvider.notifier).checkAshOnStartup(
+      await ref.read(streakProvider.notifier).checkAshOnStartup(
             now: DateTime.now(),
             curfew: curfew,
           );
+      if (!mounted) return;
       if (ref.read(streakProvider).ashPending) {
         context.go(AppRoutes.ash);
       }

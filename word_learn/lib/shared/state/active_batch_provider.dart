@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/vocabulary_repository.dart';
 import '../models/batch_entry.dart';
 import '../models/language_config.dart';
+import '../services/local_storage_service.dart';
 import 'session_state.dart';
 import 'vault_provider.dart';
 
@@ -13,8 +14,7 @@ const int _batchCapacity = 200;
 /// Family provider: one independent [LanguageBatchNotifier] per [LanguageConfig].
 ///
 /// Each language gets its own isolated 200-word Active Batch with independent
-/// SRS state. Language configs are compared by [LanguageConfig.key] so the
-/// family lookup is stable.
+/// SRS state. Fully persisted to SQLite via [LocalStorageService].
 ///
 /// Usage:
 ///   ref.watch(languageBatchProvider(config))
@@ -26,13 +26,35 @@ final languageBatchProvider = NotifierProviderFamily<
 
 class LanguageBatchNotifier
     extends FamilyNotifier<List<BatchEntry>, LanguageConfig> {
-  /// The LanguageConfig this batch belongs to — set by Riverpod family arg.
   late LanguageConfig _config;
+  final _storage = LocalStorageService.instance;
+  bool _loaded = false;
 
   @override
   List<BatchEntry> build(LanguageConfig arg) {
     _config = arg;
-    return _seedInitialBatch();
+    // Return empty list synchronously; init() loads from DB asynchronously.
+    // This avoids blocking Riverpod's synchronous build.
+    return [];
+  }
+
+  // ── Initialisation ─────────────────────────────────────────────────────────
+
+  /// Load this language's batch from SQLite (or seed if first launch).
+  /// Must be called once per language on startup / first use.
+  Future<void> init() async {
+    if (_loaded) return;
+    _loaded = true;
+
+    final persisted = await _storage.loadBatch(_config.key);
+    if (persisted.isNotEmpty) {
+      state = persisted;
+    } else {
+      // First launch for this language — seed initial 10-word batch.
+      final seeded = _buildSeed();
+      await _storage.upsertBatchEntries(seeded);
+      state = seeded;
+    }
   }
 
   // ── Capacity ───────────────────────────────────────────────────────────────
@@ -47,7 +69,7 @@ class LanguageBatchNotifier
   /// Inject [count] new words from this batch's language config.
   /// Skips duplicates and respects 200-word cap.
   /// Returns the number of words actually added.
-  int injectDrip({int count = 20}) {
+  Future<int> injectDrip({int count = 20}) async {
     if (isFull) return 0;
 
     final available = VocabularyRepository.getWords(
@@ -64,29 +86,39 @@ class LanguageBatchNotifier
     if (toAdd.isEmpty) return 0;
 
     final now = DateTime.now();
-    final newEntries = toAdd.map((w) => BatchEntry(
-          id: w.id,
-          word: w.word,
-          meaning: w.meaning,
-          exampleSentence: w.exampleSentence,
-          exampleTranslation: w.exampleTranslation,
-          addedAt: now,
-          isNewToday: true,
-          languageKey: _config.key,
-        ));
+    final newEntries = toAdd
+        .map((w) => BatchEntry(
+              id: w.id,
+              word: w.word,
+              meaning: w.meaning,
+              exampleSentence: w.exampleSentence,
+              exampleTranslation: w.exampleTranslation,
+              addedAt: now,
+              isNewToday: true,
+              languageKey: _config.key,
+            ))
+        .toList();
 
     state = [...state, ...newEntries];
+    await _storage.upsertBatchEntries(newEntries);
     return toAdd.length;
   }
 
   // ── SRS update ─────────────────────────────────────────────────────────────
 
-  void applyRating(String cardId, DifficultyRating rating) {
+  Future<void> applyRating(String cardId, DifficultyRating rating) async {
     final quality = _ratingToQuality(rating);
+    BatchEntry? updated;
     state = [
       for (final entry in state)
-        if (entry.id == cardId) entry.withSm2Update(quality) else entry,
+        if (entry.id == cardId)
+          updated = entry.withSm2Update(quality)
+        else
+          entry,
     ];
+    if (updated != null) {
+      await _storage.upsertBatchEntry(updated);
+    }
   }
 
   int _ratingToQuality(DifficultyRating r) {
@@ -104,25 +136,29 @@ class LanguageBatchNotifier
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
-  void remove(String id) {
+  Future<void> remove(String id) async {
     state = state.where((e) => e.id != id).toList();
+    await _storage.deleteBatchEntry(id);
   }
 
-  void moveToVault(String id) {
+  Future<void> moveToVault(String id) async {
     final match = state.where((e) => e.id == id).toList();
     if (match.isNotEmpty) {
-      ref.read(vaultProvider.notifier).add(match.first);
+      await ref.read(vaultProvider.notifier).add(match.first);
       state = state.where((e) => e.id != id).toList();
+      await _storage.deleteBatchEntry(id);
     }
   }
 
-  void clearNewTodayFlags() {
-    state = [for (final e in state) e.copyWith(isNewToday: false)];
+  Future<void> clearNewTodayFlags() async {
+    final updated = [for (final e in state) e.copyWith(isNewToday: false)];
+    state = updated;
+    await _storage.upsertBatchEntries(updated);
   }
 
   // ── Seed ───────────────────────────────────────────────────────────────────
 
-  List<BatchEntry> _seedInitialBatch() {
+  List<BatchEntry> _buildSeed() {
     final now = DateTime.now();
     final words = VocabularyRepository.getWords(
       languageCode: _config.languageCode,
@@ -149,10 +185,6 @@ class LanguageBatchNotifier
 }
 
 // ── Legacy single-language provider (kept for backward compat) ────────────────
-//
-// Pre-WL-610 code reads activeBatchProvider directly. We keep it pointing
-// to the German B2 batch so existing call-sites continue working while the
-// rest of the app is migrated to languageBatchProvider.
 
 final activeBatchProvider =
     NotifierProvider<ActiveBatchNotifier, List<BatchEntry>>(
@@ -160,8 +192,7 @@ final activeBatchProvider =
 );
 
 /// Thin wrapper that delegates to the German B2 language batch.
-/// All pre-WL-610 code that reads activeBatchProvider continues to work.
-/// New code should use [languageBatchProvider] with an explicit config.
+/// All pre-WL-610 code continues to work unchanged.
 class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
   static final _fallbackConfig = LanguageConfig(
     languageCode: 'de',
@@ -173,7 +204,6 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
 
   @override
   List<BatchEntry> build() {
-    // Mirror the de_b2 language batch so activeBatchProvider stays in sync.
     return ref.watch(languageBatchProvider(_fallbackConfig));
   }
 
@@ -185,7 +215,7 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
   int get remainingCapacity => _delegate.remainingCapacity;
   bool get isNearCapacity => _delegate.isNearCapacity;
 
-  int injectDrip({
+  Future<int> injectDrip({
     int count = 20,
     LanguageConfig? config,
     String targetLanguage = 'de',
@@ -199,12 +229,12 @@ class ActiveBatchNotifier extends Notifier<List<BatchEntry>> {
     return _delegate.injectDrip(count: count);
   }
 
-  void applyRating(String cardId, DifficultyRating rating) =>
+  Future<void> applyRating(String cardId, DifficultyRating rating) =>
       _delegate.applyRating(cardId, rating);
 
-  void remove(String id) => _delegate.remove(id);
+  Future<void> remove(String id) => _delegate.remove(id);
 
-  void moveToVault(String id) => _delegate.moveToVault(id);
+  Future<void> moveToVault(String id) => _delegate.moveToVault(id);
 
-  void clearNewTodayFlags() => _delegate.clearNewTodayFlags();
+  Future<void> clearNewTodayFlags() => _delegate.clearNewTodayFlags();
 }

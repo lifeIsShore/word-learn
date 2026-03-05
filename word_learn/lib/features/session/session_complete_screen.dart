@@ -81,9 +81,11 @@ class SessionCompleteScreen extends ConsumerWidget {
 
               // ── CTA ────────────────────────────────────────────────────
               FilledButton(
-                onPressed: () {
-                  ref.read(sessionProvider.notifier).completeAndClear();
-                  context.go(AppRoutes.home);
+                onPressed: () async {
+                  await ref
+                      .read(sessionProvider.notifier)
+                      .completeAndClear();
+                  if (context.mounted) context.go(AppRoutes.home);
                 },
                 child: const Text('CONTINUE'),
               ),

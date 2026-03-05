@@ -84,9 +84,11 @@ class AshScreen extends ConsumerWidget {
 
               // ── CTA ───────────────────────────────────────────────────
               FilledButton(
-                onPressed: () {
-                  ref.read(streakProvider.notifier).acknowledgeAsh();
-                  context.go(AppRoutes.home);
+                onPressed: () async {
+                  await ref
+                      .read(streakProvider.notifier)
+                      .acknowledgeAsh();
+                  if (context.mounted) context.go(AppRoutes.home);
                 },
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.navyText,

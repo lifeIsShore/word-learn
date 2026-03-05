@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../shared/state/onboarding_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -45,7 +46,10 @@ class PaywallScreen extends ConsumerWidget {
                 features: const ['1 language', '50-word batch', 'Basic features'],
                 isRecommended: false,
                 buttonLabel: 'Continue with Free',
-                onTap: () => context.go(AppRoutes.home),
+                onTap: () async {
+                  await ref.read(onboardingProvider.notifier).completeOnboarding();
+                  if (context.mounted) context.go(AppRoutes.home);
+                },
               ),
               SizedBox(height: AppSpacing.md),
               _TierCard(

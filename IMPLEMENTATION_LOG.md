@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-05 (Session 4)
+**Last Updated:** 2026-03-05 (Session 9)
 
 ---
 
@@ -25,7 +25,7 @@
 
 
 | — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
-| — | Ghost Backup (Cloud Sync) | WL-500 | P0, 5 pts |
+| — | Ghost Backup — Cloud Sync & Encryption | WL-500 Phase 2 | P0, 3 pts — local SQLite done ✅ |
 | — | Conflict Resolution (Multi-Device Sync) | WL-510 | P1, 3 pts |
 | — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
 | — | ~~Multi-Language Study Sessions~~ | ~~WL-610~~ | ~~P1, 4 pts~~ |
@@ -265,7 +265,35 @@
 - SRS routing in `submitRating` uses `kAvailableLanguageConfigs` as the lookup table; unknown language keys fall back to the legacy `activeBatchProvider` gracefully.
 
 **Next session**
-- WL-500: Ghost Backup / Data Persistence (SQLite + SQLCipher local storage; persist batch, vault, streak, settings across restarts).
+- WL-500 Phase 2: Cloud Sync / Ghost Backup (serialize + encrypt + upload to Supabase; restore on new device).
+
+---
+
+### Session: 2026-03-05 (Session 9 — WL-500 Phase 1: Local SQLite Persistence)
+
+**What was done**
+- **`DatabaseService`** (`shared/services/database_service.dart`): Singleton SQLite manager using `sqflite`. Opens `word_learn.db` with WAL journal mode + FK enforcement. Creates 4 tables on first launch: `settings` (key/value), `streak` (single-row), `batch_entries` (per-language SRS state, indexed by `language_key` + `next_review_date`), `vault_entries` (mastered words, indexed by `language_key`). Schema versioned for future migrations via `onUpgrade`. Designed for drop-in SQLCipher swap in Phase 2.
+- **`LocalStorageService`** (`shared/services/local_storage_service.dart`): High-level async persistence API. Providers call this — never `DatabaseService` directly. Covers: `saveSetting`/`getSetting` (typed helpers for int/bool), `saveStreak`/`loadStreak`, `upsertBatchEntry`/`upsertBatchEntries` (batch write via `db.batch()`), `deleteBatchEntry`, `loadBatch(languageKey)`, `upsertVaultEntry`, `loadVault`, `saveOnboarding`/`loadOnboarding` (encoded as settings keys), `saveUserSettings`/`loadUserSettings`.
+- **`StreakNotifier`** (updated): Added `init()` to load from SQLite. All mutating methods (`checkAshOnStartup`, `recordSessionComplete`, `acknowledgeAsh`) are now `async` and call `_persist()` after state update.
+- **`SettingsNotifier`** (updated): Added `init()` to load from SQLite. All setters now `async` and persist on every change.
+- **`OnboardingNotifier`** (updated): Added `init()` — returns `bool` indicating whether onboarding was previously completed. Added `completeOnboarding()` for explicit persistence at end of flow. `setCurfew()` + `setDailyDrip()` now persist immediately (fire-and-forget).
+- **`VaultNotifier`** (updated): Added `init()`. `add()` now `async` — persists each vault entry immediately.
+- **`LanguageBatchNotifier`** (updated): Added `_loaded` guard to prevent double-init. `init()` loads from SQLite or seeds + persists if first launch. `injectDrip()`, `applyRating()`, `remove()`, `moveToVault()`, `clearNewTodayFlags()` all `async` and persist immediately. Build returns `[]` synchronously; data populated by `init()`.
+- **`SplashScreen`** (updated): Now the single startup orchestrator. Opens DB, restores all provider state, warms vocab cache, inits all language batches — all in parallel where possible. Navigates to `/home` if `onboardingProvider.init()` returns `true` (returning user), else to `/onboarding/welcome` (first launch).
+- **`PaywallScreen`** (updated): `Continue with Free` now calls `completeOnboarding()` before navigating to Home.
+- **`SessionCompleteScreen`**, **`AshScreen`**, **`HomeScreen`** (updated): Async `completeAndClear()`, `acknowledgeAsh()`, `checkAshOnStartup()` calls properly awaited.
+- **`pubspec.yaml`**: Added `sqflite: ^2.4.2`, `path: ^1.9.1`, `shared_preferences: ^2.5.3`.
+
+**Architecture decisions**
+- `DatabaseService` is a pure low-level layer (no business logic). `LocalStorageService` is the only entry point for providers — clean separation for future testing.
+- Batch writes use `db.batch().commit(noResult: true)` for performance when injecting drip words.
+- Onboarding choices stored as settings key/value pairs (no separate table) — simple, no joins needed, easy to extend.
+- `LanguageBatchNotifier.build()` returns `[]` synchronously (Riverpod requirement). `init()` populates state async. Any screen showing batch data while `init()` hasn't run yet shows empty — this is acceptable since SplashScreen awaits all `init()` calls before navigating.
+- `shared_preferences` added to pubspec for future lightweight flag storage (e.g., `first_launch`, `last_drip_date`) without needing a full SQL query.
+
+**Next session**
+- WL-500 Phase 2: Cloud Sync / Ghost Backup (serialize + encrypt + upload to Supabase; restore on new device). Deferred until auth (WL-001) is enabled.
+- Alternatively: WL-001 Auth (Supabase email sign-up) to unblock cloud features.
 
 ---
 
