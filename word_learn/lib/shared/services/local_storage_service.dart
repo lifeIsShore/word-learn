@@ -167,6 +167,79 @@ class LocalStorageService {
     await db.delete('vault_entries', where: 'id = ?', whereArgs: [id]);
   }
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // Backup helpers (raw row access for BackupPayload)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  /// Returns ALL batch entries across all languages as raw maps.
+  /// Used by BackupPayload to serialise without re-parsing.
+  Future<List<Map<String, dynamic>>> loadAllBatchEntriesRaw() async {
+    final db = await _db;
+    return db.query('batch_entries', orderBy: 'added_at ASC');
+  }
+
+  /// Returns ALL vault entries as raw maps.
+  Future<List<Map<String, dynamic>>> loadAllVaultEntriesRaw() async {
+    final db = await _db;
+    return db.query('vault_entries', orderBy: 'vaulted_at ASC');
+  }
+
+  /// Upsert a list of raw batch-entry maps (from restore).
+  Future<void> upsertBatchEntriesRaw(
+      List<Map<String, dynamic>> rows) async {
+    if (rows.isEmpty) return;
+    final db = await _db;
+    final batch = db.batch();
+    for (final row in rows) {
+      batch.insert('batch_entries', row,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// Upsert a list of raw vault-entry maps (from restore).
+  Future<void> upsertVaultEntriesRaw(
+      List<Map<String, dynamic>> rows) async {
+    if (rows.isEmpty) return;
+    final db = await _db;
+    final batch = db.batch();
+    for (final row in rows) {
+      batch.insert('vault_entries', row,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// Save a raw streak map (from restore).
+  Future<void> saveStreakRaw(Map<String, dynamic> row) async {
+    final db = await _db;
+    await db.update(
+      'streak',
+      {
+        'current_streak': row['current_streak'] ?? 0,
+        'longest_streak': row['longest_streak'] ?? 0,
+        'session_completed_today': row['session_completed_today'] ?? 0,
+        'last_session_date': row['last_session_date'],
+        'ash_pending': row['ash_pending'] ?? 0,
+      },
+      where: 'id = 1',
+    );
+  }
+
+  /// Wipe all user-generated data — used before restoring a backup.
+  /// Preserves the streak row (single-row table) but resets its values.
+  Future<void> clearAllForRestore() async {
+    final db = await _db;
+    await db.delete('batch_entries');
+    await db.delete('vault_entries');
+    await db.delete('settings');
+    await db.execute(
+      'UPDATE streak SET current_streak=0, longest_streak=0, '
+      'session_completed_today=0, last_session_date=NULL, ash_pending=0 '
+      'WHERE id=1',
+    );
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // Serialisation helpers
   // ══════════════════════════════════════════════════════════════════════════

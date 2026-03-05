@@ -9,6 +9,7 @@ import '../../core/theme/app_typography.dart';
 import '../../shared/constants/app_languages.dart';
 import '../../shared/models/language_config.dart';
 import '../../shared/state/active_language_provider.dart';
+import '../../shared/state/backup_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
@@ -23,6 +24,7 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final onboarding = ref.watch(onboardingProvider);
     final streak = ref.watch(streakProvider);
+    final backup = ref.watch(backupProvider);
     final activeLang = ref.watch(activeLanguageProvider);
     final langNotifier = ref.read(activeLanguageProvider.notifier);
     final availableLangs = langNotifier.availableForUser();
@@ -148,7 +150,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _Divider(),
 
-          // ── ACCOUNT ──────────────────────────────────────────────────
+          // ── BACKUP ────────────────────────────────────────────
+          _SectionHeader(label: 'BACKUP'),
+          _BackupStatusRow(backup: backup),
+          _ActionRow(
+            label: backup.isSyncing ? 'Syncing…' : 'Sync Now',
+            sublabel: 'Upload local progress to cloud',
+            color: backup.isSyncing
+                ? AppColors.mediumGray
+                : AppColors.primaryTeal,
+            onTap: backup.isSyncing
+                ? () {}
+                : () => _syncNow(context, ref),
+          ),
+          _Divider(),
+
+          // ── ACCOUNT ────────────────────────────────────────────
           _SectionHeader(label: 'ACCOUNT'),
           _ReadOnlyRow(label: 'Subscription', value: 'Free tier'),
           _ActionRow(
@@ -279,8 +296,86 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  void _syncNow(BuildContext context, WidgetRef ref) async {
+    final success = await ref.read(backupProvider.notifier).sync();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Backup synced successfully.' : 'Sync failed. Check your connection.',
+        ),
+      ),
+    );
+  }
+
   String _fmtTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+}
+
+// ── Backup Status Row ───────────────────────────────────────────────────
+
+class _BackupStatusRow extends StatelessWidget {
+  const _BackupStatusRow({required this.backup});
+  final BackupState backup;
+
+  @override
+  Widget build(BuildContext context) {
+    String label;
+    Color color;
+    IconData icon;
+
+    switch (backup.status) {
+      case BackupStatus.idle:
+        final synced = backup.lastSyncedAt;
+        label = synced == null
+            ? 'Not yet backed up'
+            : 'Last synced ${_fmtAgo(synced)}';
+        color = AppColors.mediumGray;
+        icon = Icons.cloud_upload_outlined;
+      case BackupStatus.syncing:
+        label = 'Syncing…';
+        color = AppColors.primaryTeal;
+        icon = Icons.sync;
+      case BackupStatus.success:
+        label = 'Backed up just now';
+        color = AppColors.success;
+        icon = Icons.cloud_done_outlined;
+      case BackupStatus.failed:
+        label = backup.error ?? 'Backup failed';
+        color = AppColors.error;
+        icon = Icons.cloud_off_outlined;
+    }
+
+    final counts = backup.batchWordCount != null
+        ? '${backup.batchWordCount} batch · ${backup.vaultWordCount} vault'
+        : null;
+
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, color: color, size: 20),
+      title: Text(
+        label,
+        style: AppTypography.bodyMedium.copyWith(color: color),
+      ),
+      subtitle: counts != null
+          ? Text(
+              counts,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mediumGray,
+                fontSize: 11,
+              ),
+            )
+          : null,
+    );
+  }
+
+  String _fmtAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
 }
 
 // ── Shared sub-widgets ────────────────────────────────────────────────────────

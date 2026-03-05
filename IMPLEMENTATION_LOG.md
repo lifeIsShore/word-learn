@@ -22,7 +22,6 @@
 
 
 | — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
-| — | Ghost Backup — Cloud Sync & Encryption | WL-500 Phase 2 | P0, 3 pts — local SQLite done ✅ |
 | — | Conflict Resolution (Multi-Device Sync) | WL-510 | P1, 3 pts |
 | — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
 | — | ~~Multi-Language Study Sessions~~ | ~~WL-610~~ | ~~P1, 4 pts~~ |
@@ -41,6 +40,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-500 Phase 2: Ghost Backup — BackupPayload, BackupService (AES-256-CBC + gzip), BackupNotifier, backend `/api/v1/backup` (POST/GET/DELETE), Settings Sync Now, session-complete trigger | 2026-03-05 | See Session 12 notes |
 | — | WL-001/004/005: Flutter auth layer — AuthRepository, AuthNotifier, AuthUser, full sign-in/sign-up UI, dev bypass flag | 2026-03-05 | `devModeSkipAuth=true`; see Session 11 notes |
 | — | WL-001/004/005: Backend auth — FastAPI + PostgreSQL + JWT (signup, signin, refresh, logout, /me). Docker Compose stack with PgAdmin. Self-hosted, no Supabase. | 2026-03-05 | `backend/` directory; see Session 10 notes |
 | — | WL-610: Multi-Language Study Sessions (per-language batch isolation, language-tagged SRS, multi-language session, per-language stats) | 2026-03-05 | languageBatchProvider family; language badge on flashcard; per-lang breakdown in summary |
@@ -307,6 +307,48 @@
 - **State:** Riverpod in use; `onboardingProvider` holds onboarding choices. Auth and subscription state to be added when auth/IAP are enabled.
 - **Auth & payment:** Deferred and disabled for easier testing. Auth screen and Paywall (IAP) are placeholders; enable when ready (WL-001–005, WL-016 full, WL-300, WL-301, WL-310).
 - **Backend:** Supabase (Auth, DB, Edge Functions). Local-first: SQLite + SQLCipher for progress; sync via “Ghost Backup” protocol.
+
+---
+
+### Session: 2026-03-05 (Session 12 — WL-500 Phase 2: Ghost Backup)
+
+**What was built**
+
+**Backend** (`backend/app/`)
+- `models/backup.py` — `Backup` ORM model: `user_id`, `encrypted_data` (Text), plaintext metadata (`backup_version`, `platform`, `batch_word_count`, `vault_word_count`, `streak`), timestamps. One row per user (upsert pattern).
+- `schemas/backup.py` — `BackupUploadRequest`, `BackupMetaResponse` (no blob), `BackupDownloadResponse` (with blob).
+- `routers/backup.py` — Four endpoints: `POST /api/v1/backup` (upsert), `GET /api/v1/backup/meta` (lightweight status), `GET /api/v1/backup` (full blob for restore), `DELETE /api/v1/backup` (account deletion).
+- `main.py` — Registered `backup_router`; explicit `import models.backup` so SQLAlchemy registers the table before `create_all_tables()`.
+
+**Flutter** (`lib/`)
+- `shared/backup/backup_payload.dart` — Pure serialiser. `buildFromLocalDb()` reads all SQLite tables into one JSON object. `restoreToLocalDb()` wipes and rewrites all tables from the payload. Version-tagged for future migrations.
+- `shared/backup/backup_service.dart` — Encryption + HTTP layer. AES-256-CBC + gzip + base64. Key derived from password + userId via PBKDF2-SHA256 (10k iterations — zero-knowledge, server never sees plaintext). `upload()`, `downloadAndRestore()`, `fetchMeta()`, `deleteCloudBackup()`.
+- `shared/state/backup_provider.dart` — `BackupState` (idle/syncing/success/failed, lastSyncedAt, error, word counts). `BackupNotifier` with `sync(silent:)`, `restore()`, `loadMeta()`, `deleteCloudBackup()`. Dev mode: silent syncs skip network; explicit syncs use fixed dev key.
+- `shared/services/local_storage_service.dart` — Added raw helpers for backup: `loadAllBatchEntriesRaw()`, `loadAllVaultEntriesRaw()`, `upsertBatchEntriesRaw()`, `upsertVaultEntriesRaw()`, `saveStreakRaw()`, `clearAllForRestore()`.
+- `shared/auth/auth_repository.dart` — Added `userId` getter (reads from secure storage).
+- `pubspec.yaml` — Added `encrypt: ^5.0.3`, `archive: ^3.6.1`, `crypto: ^3.0.3`.
+
+**Trigger points**
+- `session_complete_screen.dart` — `sync(silent: true)` fires after every CONTINUE tap (non-blocking, background).
+- `settings_screen.dart` — BACKUP section with `_BackupStatusRow` (cloud/idle/syncing/success/failed icon + last-synced label + word counts) and "Sync Now" button with snackbar result.
+
+**Architecture decisions**
+- One backup slot per user (last-write-wins). Versioned history is a paid feature later.
+- Encryption is zero-knowledge: password never leaves the device. Server stores only ciphertext. If the user forgets their password, the backup is unrecoverable by design.
+- Dev mode: `devModeSkipAuth=true` → silent syncs are no-ops; explicit Sync Now uses a fixed dev password so the flow can be tested end-to-end against the real backend.
+- PBKDF2 at 10k iterations (~50ms on device). Comment left to increase to 100k once moved to a `compute()` isolate.
+- `backup_service.dart` keeps `storeBackupPassword()` public — called from `AuthRepository` at sign-in/sign-up so the key material is always fresh.
+
+**Run after pulling**
+```bash
+cd word_learn && flutter pub get
+cd backend && docker compose up --build   # picks up new backups table
+```
+
+**Next session**
+- WL-300/301/310: IAP + Receipt Verification + Subscription Entitlements — needed before any public launch.
+- WL-190: Vault Audit (small, self-contained, completes the vault story).
+- WL-510: Conflict Resolution (depends on backup being stable first).
 
 ---
 

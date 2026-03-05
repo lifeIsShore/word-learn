@@ -6,6 +6,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
+import '../../shared/state/backup_provider.dart';
 import '../../shared/state/curfew_status_provider.dart';
 import '../../shared/state/session_provider.dart';
 import '../../shared/state/session_state.dart';
@@ -85,6 +86,8 @@ class SessionCompleteScreen extends ConsumerWidget {
                   await ref
                       .read(sessionProvider.notifier)
                       .completeAndClear();
+                  // WL-500 Phase 2: Silent background backup after every session.
+                  ref.read(backupProvider.notifier).sync(silent: true);
                   if (context.mounted) context.go(AppRoutes.home);
                 },
                 child: const Text('CONTINUE'),

@@ -37,6 +37,9 @@ class AuthRepository {
   Future<bool> get hasStoredSession async =>
       (await accessToken) != null;
 
+  Future<String?> get userId =>
+      _storage.read(key: AppConfig.kUserIdKey);
+
   /// Loads a user from secure storage without hitting the network.
   /// Returns null if no session is stored.
   Future<AuthUser?> loadStoredUser() async {
