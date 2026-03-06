@@ -29,6 +29,11 @@ class User(Base):
     # Refresh token — stored hashed so we can invalidate on logout
     refresh_token_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # GDPR: soft-delete (WL-410)
+    scheduled_deletion_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

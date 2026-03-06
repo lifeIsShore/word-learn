@@ -8,14 +8,16 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/constants/app_languages.dart';
 import '../../shared/models/language_config.dart';
+import '../../shared/privacy/account_deletion_service.dart';
+import '../../shared/privacy/data_export_service.dart';
 import '../../shared/state/active_language_provider.dart';
 import '../../shared/state/backup_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
 
-/// WL-400: User Profile & Settings Screen.
-/// Sections: Profile · Learning · Appearance · Stats · Privacy · Account.
+/// WL-400 / WL-410: User Profile & Settings Screen.
+/// Sections: Profile · Learning · Appearance · Stats · Privacy · Backup · Account.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -150,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _Divider(),
 
-          // ── BACKUP ────────────────────────────────────────────
+          // ── BACKUP ───────────────────────────────────────────────────
           _SectionHeader(label: 'BACKUP'),
           _BackupStatusRow(backup: backup),
           _ActionRow(
@@ -165,20 +167,28 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _Divider(),
 
-          // ── ACCOUNT ────────────────────────────────────────────
+          // ── ACCOUNT ──────────────────────────────────────────────────
           _SectionHeader(label: 'ACCOUNT'),
           _ReadOnlyRow(label: 'Subscription', value: 'Free tier'),
+          // WL-410: GDPR data export
+          _ActionRow(
+            label: 'Download My Data',
+            sublabel: 'Export all learning data as JSON (GDPR)',
+            color: AppColors.primaryTeal,
+            onTap: () => _downloadMyData(context),
+          ),
           _ActionRow(
             label: 'Reset Progress',
             sublabel: 'Clears streak and session history',
             color: AppColors.warning,
             onTap: () => _confirmResetProgress(context, ref),
           ),
+          // WL-410: GDPR right to erasure
           _ActionRow(
             label: 'Delete Account',
             sublabel: 'Permanently removes all data',
             color: AppColors.error,
-            onTap: () => _confirmDeleteAccount(context),
+            onTap: () => _confirmDeleteAccount(context, ref),
           ),
 
           SizedBox(height: AppSpacing.xxl),
@@ -252,9 +262,9 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(streakProvider.notifier).acknowledgeAsh();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Progress reset.')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Progress reset.')),
+              );
             },
             child: const Text('Reset'),
           ),
@@ -263,31 +273,61 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmDeleteAccount(BuildContext context) {
+  // ── WL-410: Download My Data ──────────────────────────────────────────────
+
+  Future<void> _downloadMyData(BuildContext context) async {
+    // Show a brief loading indicator.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Preparing your data…'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    final success = await DataExportService.instance.exportAndShare();
+
+    if (!context.mounted) return;
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Export failed. Please try again.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+    // On success the native share sheet handles the rest — no extra snackbar needed.
+  }
+
+  // ── WL-410: Delete Account ────────────────────────────────────────────────
+
+  void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Account'),
         content: const Text(
-          'This is irreversible. All data will be permanently deleted. Auth is currently disabled — this action clears local state only.',
+          'This is irreversible. All data will be permanently deleted and '
+          'your account will be removed within 30 days.\n\n'
+          'Consider downloading your data first.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              // In production: POST /api/v1/user/delete + clear SQLite + tokens.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Account deletion deferred — auth not yet enabled.',
-                  ),
-                ),
-              );
+              _downloadMyData(context);
+            },
+            child: const Text('Download first'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _executeAccountDeletion(context, ref);
             },
             child: const Text('Delete'),
           ),
@@ -296,13 +336,48 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _executeAccountDeletion(
+      BuildContext context, WidgetRef ref) async {
+    // Show in-progress indicator.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Deleting account…'),
+        duration: Duration(seconds: 30),
+      ),
+    );
+
+    final error = await AccountDeletionService.instance.deleteAccount();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Success — navigate to auth screen.
+    // Invalidate all providers so stale data isn't shown if user re-creates account.
+    context.go(AppRoutes.auth);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   void _syncNow(BuildContext context, WidgetRef ref) async {
     final success = await ref.read(backupProvider.notifier).sync();
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success ? 'Backup synced successfully.' : 'Sync failed. Check your connection.',
+          success
+              ? 'Backup synced successfully.'
+              : 'Sync failed. Check your connection.',
         ),
       ),
     );
@@ -312,7 +387,7 @@ class SettingsScreen extends ConsumerWidget {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 }
 
-// ── Backup Status Row ───────────────────────────────────────────────────
+// ── Backup Status Row ─────────────────────────────────────────────────────────
 
 class _BackupStatusRow extends StatelessWidget {
   const _BackupStatusRow({required this.backup});
@@ -346,7 +421,6 @@ class _BackupStatusRow extends StatelessWidget {
         icon = Icons.cloud_off_outlined;
     }
 
-    // Sub-label lines (WL-510): counts + last-merged timestamp.
     final lines = <String>[];
     if (backup.batchWordCount != null) {
       lines.add(
@@ -622,7 +696,7 @@ class _SliderRow extends StatelessWidget {
   }
 }
 
-// ── Language Picker Row (WL-600) ─────────────────────────────────────────────
+// ── Language Picker Row (WL-600) ──────────────────────────────────────────────
 
 class _LanguagePickerRow extends StatelessWidget {
   const _LanguagePickerRow({

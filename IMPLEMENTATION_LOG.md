@@ -21,7 +21,7 @@
 | — | Vault Audit & Re-Validation (Quarterly) | WL-190 | P2, 4 pts — **deferred** |
 
 
-| — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
+
 | — | ~~Conflict Resolution (Multi-Device Sync)~~ | ~~WL-510~~ | ~~P1, 3 pts~~ → **In Progress** |
 | — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
 | — | ~~Multi-Language Study Sessions~~ | ~~WL-610~~ | ~~P1, 4 pts~~ |
@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-410: Privacy Controls — DataExportService (JSON + native share sheet), AccountDeletionService (backend soft-delete + local wipe), backend DELETE /user/delete, Settings ACCOUNT section wired | 2026-03-06 | See Session 15 notes |
 | — | WL-510: Conflict Resolution — SyncResolver (LWW), BackupService.downloadAndMerge(), bidirectional sync in BackupNotifier, 30-min background timer in HomeScreen, lastMergedAt in Settings | 2026-03-06 | See Session 14 notes |
 | — | WL-190: Vault Audit (quarterly re-validation, AuditNotifier, AuditSessionScreen, AuditCompleteScreen, audit due banner in VaultScreen) + Polish (empty batch guard, snackbar consistency) | 2026-03-05 | See Session 13 notes |
 | — | WL-500 Phase 2: Ghost Backup — BackupPayload, BackupService (AES-256-CBC + gzip), BackupNotifier, backend `/api/v1/backup` (POST/GET/DELETE), Settings Sync Now, session-complete trigger | 2026-03-05 | See Session 12 notes |

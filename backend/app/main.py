@@ -6,6 +6,7 @@ from core.config import get_settings
 from core.database import create_all_tables
 from routers import auth as auth_router
 from routers import backup as backup_router
+from routers import user as user_router
 # Import all models so SQLAlchemy registers them before create_all_tables()
 import models.user  # noqa: F401
 import models.backup  # noqa: F401
@@ -42,6 +43,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router.router, prefix="/api/v1")
 app.include_router(backup_router.router, prefix="/api/v1")
+app.include_router(user_router.router, prefix="/api/v1")
 
 
 # ── Health check ─────────────────────────────────────────────────────────────
