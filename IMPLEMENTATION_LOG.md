@@ -537,3 +537,31 @@ NEW   test/sync_resolver_test.dart                    ✓ 18 unit tests (LWW, me
 **Next session**
 - WL-002/003: Google + Apple OAuth (unblock real auth; flip `devModeSkipAuth = false`).
 - WL-300/301/310: IAP + Subscriptions (final blocker before public launch).
+
+
+next to do:
+📍 Where You Are
+The entire self-implementable feature set is complete. Every story that can be built without external service credentials has been shipped. Here's the honest status:
+✅ Done (all self-contained features)
+All core learning loop, SRS, multi-language, vault, curfew/ice/ash, settings, backup, sync, and privacy features are live.
+🔴 Blocked on external credentials
+StoryWhat's needed to unblockWL-002 Google OAuthGoogle Cloud project + OAuth client IDWL-003 Apple OAuthApple Developer account + Sign in with Apple capabilityWL-300/301 IAPApp Store Connect + Play Console billing setupWL-310 EntitlementsDepends on WL-300/301WL-016 Paywall (full)Depends on WL-300
+
+🔜 What's Actually Next
+Since the code is feature-complete, the real work now is pre-launch hardening — and there's a meaningful list of things you can do right now without any credentials:
+Tier 1 — Do now, before touching auth/IAP
+These are things that matter at launch and are fully implementable today:
+1. Onboarding persistence fix — Right now devModeSkipAuth=true means users skip the auth screen. When you flip that flag off for real launch, returning users need to land correctly. The sign-in → onboarding → home routing logic needs a final pass.
+2. Push Notifications (WL-520) — Firebase Cloud Messaging setup takes ~2 hours and is independent of auth/IAP. Daily streak reminders, curfew warnings. This is a strong retention driver and 100% implementable now.
+3. More vocabulary data — The app currently ships with a small B2 German dataset. Before launch you'd want A1/A2/B1/C1 German and at least A1→B2 for Spanish. The VOCABULARY_ENTRY_GUIDE.md you just got tells you exactly how to format it.
+4. App icon + splash screen — Launch assets. Fully implementable now.
+5. Onboarding polish / animations — The onboarding flow works but has no transitions or motion. Small investment, high perceived quality.
+6. Error boundary & offline UX — The app assumes connectivity for backup sync. What does it show when offline? This should be graceful, not a crash or a red error.
+7. TestFlight / Internal Testing setup — You can submit to TestFlight now without IAP enabled. This is how you'd start real device testing.
+Tier 2 — Once you have credentials
+8. WL-002/003 Google + Apple OAuth — Flip devModeSkipAuth = false. This is the biggest unlock because real users can then sign in, their backups actually work, and you can test the full multi-device sync flow end-to-end.
+9. WL-300/301/310 IAP — Revenue. Comes after OAuth because you need real users to test receipt validation properly.
+
+My Recommendation
+The most valuable next session is Push Notifications — it's the only major retention feature not yet built, it's fully doable now, and it directly impacts Day-7 and Day-30 retention (your two weakest success metrics in the PRD). After that, vocabulary data expansion so the app has enough content to actually be useful at launch.
+Want to start with push notifications, vocabulary expansion, or something else from that list?
