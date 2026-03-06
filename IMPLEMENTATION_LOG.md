@@ -22,7 +22,7 @@
 
 
 | — | Privacy Controls & Data Management | WL-410 | P2, 2 pts |
-| — | Conflict Resolution (Multi-Device Sync) | WL-510 | P1, 3 pts |
+| — | ~~Conflict Resolution (Multi-Device Sync)~~ | ~~WL-510~~ | ~~P1, 3 pts~~ → **In Progress** |
 | — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
 | — | ~~Multi-Language Study Sessions~~ | ~~WL-610~~ | ~~P1, 4 pts~~ |
 
@@ -32,6 +32,7 @@
 
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
+| WL-510 | Conflict Resolution (Multi-Device Sync) | — | 2026-03-06 | Last-write-wins SRS merge; SyncResolver; per-word timestamp comparison; background 30-min sync |
 
 
 ---
@@ -457,3 +458,70 @@ With `false`: splash → /auth if no stored token, real JWT flow.
 **Next session**
 - WL-500 Phase 2: Ghost Backup — serialize + encrypt + POST to `/api/v1/user/backup` on the FastAPI backend (blocked until auth is enabled, but can scaffold the endpoint now).
 - Or: add the `/api/v1/user/backup` and `/api/v1/user/sessions` endpoints to the backend.
+
+---
+
+### Session: 2026-03-06 (Session 14 — WL-510: Conflict Resolution / Multi-Device Sync)
+
+**Story selected:** WL-510 — Conflict Resolution (Multi-Device Sync)
+**Priority:** P1 | **Effort:** 3 points
+**Dependency:** WL-500 Ghost Backup (complete ✓)
+
+**Why this story next**
+WL-500 (Ghost Backup) is stable and proven. WL-510 is its natural follow-on — without conflict resolution, two devices editing the same word's SRS state would silently overwrite each other. Deferred IAP stories (WL-300/301/310) require App Store/Play Store credentials and a live billing environment; WL-510 can be built and tested entirely offline/locally.
+
+**User story (from user-stories.md)**
+> As a multi-device user, I want to study on both iPhone and iPad without losing progress, so that my learning continues seamlessly across devices.
+
+**Scope of this session**
+
+1. **`SyncResolver`** (`shared/backup/sync_resolver.dart`)
+   - `resolveWordConflict(local: BatchEntry, remote: BatchEntry) → BatchEntry` — returns the entry with the more recent `lastReviewedAt` timestamp (last-write-wins).
+   - `mergeBatches(local: List<BatchEntry>, remote: List<BatchEntry>) → List<BatchEntry>` — unions the two lists; for words present in both, calls `resolveWordConflict`; words only in one list are kept as-is.
+   - `mergeVaults(local: List<VaultEntry>, remote: List<VaultEntry>) → List<VaultEntry>` — same pattern keyed by vocabulary ID.
+   - Fully pure functions — no I/O, no Riverpod. Easy to unit-test.
+
+2. **`BackupService` (updated)** (`shared/backup/backup_service.dart`)
+   - `downloadAndMerge()`: new method. Downloads the cloud backup, decrypts + decompresses, then calls `SyncResolver.mergeBatches` and `mergeVaults` against current local SQLite state before writing. Replaces the destructive `clearAllForRestore()` path (which stays for the "start fresh" flow).
+   - Existing `upload()` unchanged.
+
+3. **`BackupNotifier` (updated)** (`shared/state/backup_provider.dart`)
+   - `sync(silent:)` now calls `downloadAndMerge()` before `upload()` — fetch → merge → write local → re-upload merged state. This makes every sync a bidirectional merge, not a destructive overwrite.
+   - `BackupState` gains `lastMergedAt` timestamp field for debugging/display.
+
+4. **Background sync timer** (`features/home/home_screen.dart`)
+   - Existing 60-second curfew timer refactored into a shared `_HomeTimers` helper.
+   - Add a 30-minute periodic timer that fires `ref.read(backupProvider.notifier).sync(silent: true)` when the device is online. Timer cancelled in `dispose()`.
+
+5. **Settings section update** (`features/settings/settings_screen.dart`)
+   - BACKUP section: add `Last synced: X min ago` and `Last merged: X min ago` sub-labels beneath the Sync Now button (reads from `BackupState`).
+
+**What is NOT in scope this session**
+- Three-way merge (base + local + remote) — LWW is sufficient for MVP.
+- Operational transform / CRDTs — over-engineered for a word-learning app.
+- Push notifications from server when another device uploads (Phase 2).
+- Conflict visualisation UI ("These 3 words differ — pick a version") — Phase 2.
+
+**Acceptance criteria checklist (from WL-510)**
+- [ ] `SyncResolver.resolveWordConflict` returns most-recent entry
+- [ ] `SyncResolver.mergeBatches` correctly unions + deduplicates
+- [ ] `BackupService.downloadAndMerge()` does not wipe local data
+- [ ] Every `sync()` call is now bidirectional (fetch → merge → upload)
+- [ ] 30-minute background timer fires silently on HomeScreen
+- [ ] Settings shows `lastMergedAt` timestamp
+- [ ] No cross-language data leaks (each merge keyed by `language_key`)
+- [ ] Unit tests: LWW single-word, full batch merge, vault merge, empty-remote edge case, empty-local edge case
+
+**Files to create / modify**
+```
+NEW   lib/shared/backup/sync_resolver.dart
+MOD   lib/shared/backup/backup_service.dart       (add downloadAndMerge)
+MOD   lib/shared/state/backup_provider.dart       (sync = merge+upload; lastMergedAt)
+MOD   lib/features/home/home_screen.dart          (30-min sync timer)
+MOD   lib/features/settings/settings_screen.dart  (lastMergedAt label)
+NEW   test/sync_resolver_test.dart
+```
+
+**Next session after this**
+- WL-002/003: Google + Apple OAuth (unblock real auth; flip `devModeSkipAuth = false`).
+- WL-300/301/310: IAP + Subscriptions (final blocker before public launch).
