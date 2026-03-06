@@ -86,3 +86,17 @@ Tech: Flutter for mobile (Android first), later iOS/desktop.
 - Futura font files need to be added to `assets/fonts/` (or swap to Google Fonts `Nunito`/`DM Sans` for dev)
 - Supabase URL/key are placeholders — replace before first run
 - `app_router.g.dart` and other `.g.dart` files are generated — do NOT edit manually
+
+
+next:
+Before you can run the app, you need to do two things:
+
+Run in the flutter_app/ directory:
+
+   flutter pub get
+   dart run build_runner build --delete-conflicting-outputs
+This generates all the .g.dart files (Riverpod + Freezed + go_router).
+
+Create a Supabase project at app.supabase.com and paste your URL + anon key into lib/core/constants/app_constants.dart.
+
+Next sprint is Epic 3 — the Core Study Loop: the local encrypted SQLite DB, the SM-2 SRS engine, and the flashcard screen. That's the heart of the app. Ready whenever you are.
