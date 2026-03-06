@@ -32,7 +32,7 @@
 
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
-| WL-510 | Conflict Resolution (Multi-Device Sync) | — | 2026-03-06 | Last-write-wins SRS merge; SyncResolver; per-word timestamp comparison; background 30-min sync |
+
 
 
 ---
@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | WL-510: Conflict Resolution — SyncResolver (LWW), BackupService.downloadAndMerge(), bidirectional sync in BackupNotifier, 30-min background timer in HomeScreen, lastMergedAt in Settings | 2026-03-06 | See Session 14 notes |
 | — | WL-190: Vault Audit (quarterly re-validation, AuditNotifier, AuditSessionScreen, AuditCompleteScreen, audit due banner in VaultScreen) + Polish (empty batch guard, snackbar consistency) | 2026-03-05 | See Session 13 notes |
 | — | WL-500 Phase 2: Ghost Backup — BackupPayload, BackupService (AES-256-CBC + gzip), BackupNotifier, backend `/api/v1/backup` (POST/GET/DELETE), Settings Sync Now, session-complete trigger | 2026-03-05 | See Session 12 notes |
 | — | WL-001/004/005: Flutter auth layer — AuthRepository, AuthNotifier, AuthUser, full sign-in/sign-up UI, dev bypass flag | 2026-03-05 | `devModeSkipAuth=true`; see Session 11 notes |
@@ -522,6 +523,16 @@ MOD   lib/features/settings/settings_screen.dart  (lastMergedAt label)
 NEW   test/sync_resolver_test.dart
 ```
 
-**Next session after this**
+**Completed this session**
+```
+NEW   lib/shared/backup/sync_resolver.dart            ✓ SyncResolver + VaultEntrySnapshot
+MOD   lib/shared/backup/backup_service.dart           ✓ downloadAndMerge() + MergeResult
+MOD   lib/shared/state/backup_provider.dart           ✓ bidirectional sync; lastMergedAt; lastAddedFromRemote
+MOD   lib/features/home/home_screen.dart              ✓ 30-min _syncTimer
+MOD   lib/features/settings/settings_screen.dart      ✓ lastMergedAt + addedFromRemote in _BackupStatusRow
+NEW   test/sync_resolver_test.dart                    ✓ 18 unit tests (LWW, merge, vault, edge cases)
+```
+
+**Next session**
 - WL-002/003: Google + Apple OAuth (unblock real auth; flip `devModeSkipAuth = false`).
 - WL-300/301/310: IAP + Subscriptions (final blocker before public launch).

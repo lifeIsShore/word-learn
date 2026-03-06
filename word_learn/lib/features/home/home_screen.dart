@@ -16,6 +16,7 @@ import '../../shared/state/curfew_status_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/session_provider.dart';
 import '../../shared/state/settings_provider.dart';
+import '../../shared/state/backup_provider.dart';
 import '../../shared/state/streak_provider.dart';
 import '../../shared/state/vault_provider.dart';
 
@@ -30,6 +31,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   Timer? _curfewTimer;
+  Timer? _syncTimer;
+
+  static const _syncInterval = Duration(minutes: 30);
 
   @override
   void initState() {
@@ -37,13 +41,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addObserver(this);
     _checkAsh();
     _startCurfewTimer();
+    _startSyncTimer();
   }
 
   @override
   void dispose() {
     _curfewTimer?.cancel();
+    _syncTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// WL-510: background 30-minute bidirectional sync timer.
+  void _startSyncTimer() {
+    _syncTimer = Timer.periodic(_syncInterval, (_) {
+      if (!mounted) return;
+      ref.read(backupProvider.notifier).sync(silent: true);
+    });
   }
 
   @override

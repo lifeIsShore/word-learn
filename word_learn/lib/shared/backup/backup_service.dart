@@ -8,7 +8,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/config/app_config.dart';
+import '../models/batch_entry.dart';
+import '../services/local_storage_service.dart';
 import 'backup_payload.dart';
+import 'sync_resolver.dart';
 
 /// Encryption details:
 ///   Algorithm : AES-256-GCM
@@ -207,6 +210,117 @@ class BackupService {
     }
   }
 
+  // ── Download + merge (WL-510) ─────────────────────────────────────────────
+
+  /// Downloads the cloud backup, decrypts it, merges with local SQLite state
+  /// using Last-Write-Wins per word, then writes the merged result back locally
+  /// AND re-uploads it so the server always holds the authoritative merged state.
+  ///
+  /// This is the sync path called during normal operation. The destructive
+  /// [downloadAndRestore] is reserved for the "start fresh on new device" case.
+  ///
+  /// Returns `MergeResult` with counts for UI display.
+  Future<MergeResult> downloadAndMerge({
+    required String userId,
+    required String accessToken,
+  }) async {
+    // ── 1. Fetch remote backup ────────────────────────────────────────────
+    final resp = await http
+        .get(
+          Uri.parse('${AppConfig.apiBaseUrl}/backup'),
+          headers: {'Authorization': 'Bearer $accessToken'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode == 404) {
+      // No remote backup yet — nothing to merge; caller should just upload.
+      return const MergeResult(merged: 0, added: 0, noRemoteBackup: true);
+    }
+    if (resp.statusCode != 200) {
+      throw Exception('Server error ${resp.statusCode}: ${_parseError(resp.body)}');
+    }
+
+    // ── 2. Decrypt remote payload ─────────────────────────────────────────
+    final json = jsonDecode(resp.body) as Map<String, dynamic>;
+    final encryptedData = json['encrypted_data'] as String;
+    final password = await _getPassword(userId);
+    final plaintext = _decrypt(encryptedData, password, userId);
+    final remotePayload = BackupPayload.fromJsonString(plaintext);
+
+    // ── 3. Load local state ───────────────────────────────────────────────
+    final storage = LocalStorageService.instance;
+    final localBatchRaw = await storage.loadAllBatchEntriesRaw();
+    final localVaultRaw = await storage.loadAllVaultEntriesRaw();
+
+    final localBatch = localBatchRaw.map(_rawToBatchEntry).toList();
+    final remoteBatch =
+        remotePayload.batchEntries.map(_rawToBatchEntry).toList();
+
+    final localVault =
+        localVaultRaw.map(VaultEntrySnapshot.fromMap).toList();
+    final remoteVault =
+        remotePayload.vaultEntries.map(VaultEntrySnapshot.fromMap).toList();
+
+    // ── 4. Merge using LWW ────────────────────────────────────────────────
+    final mergedBatch = SyncResolver.mergeAllLanguageBatches(
+      local: localBatch,
+      remote: remoteBatch,
+    );
+    final mergedVault = SyncResolver.mergeVaults(
+      local: localVault,
+      remote: remoteVault,
+    );
+
+    final addedFromRemote =
+        mergedBatch.length - localBatch.length + mergedVault.length - localVault.length;
+
+    // ── 5. Write merged state to local SQLite ─────────────────────────────
+    final mergedBatchRaw = mergedBatch.map(_batchEntryToRaw).toList();
+    final mergedVaultRaw = mergedVault.map((v) => v.toMap()).toList();
+
+    await storage.upsertBatchEntriesRaw(mergedBatchRaw);
+    await storage.upsertVaultEntriesRaw(mergedVaultRaw);
+
+    return MergeResult(
+      merged: mergedBatch.length + mergedVault.length,
+      added: addedFromRemote.clamp(0, double.maxFinite.toInt()),
+    );
+  }
+
+  // ── Raw ↔ model helpers ───────────────────────────────────────────────────
+
+  BatchEntry _rawToBatchEntry(Map<String, dynamic> m) => BatchEntry(
+        id: m['id'] as String,
+        word: m['word'] as String,
+        meaning: m['meaning'] as String,
+        exampleSentence: m['example_sentence'] as String? ?? '',
+        exampleTranslation: m['example_translation'] as String? ?? '',
+        nextReviewDate: m['next_review_date'] != null
+            ? DateTime.tryParse(m['next_review_date'] as String)
+            : null,
+        easeFactor: (m['ease_factor'] as num).toDouble(),
+        intervalDays: m['interval_days'] as int,
+        repetitions: m['repetitions'] as int,
+        addedAt: DateTime.parse(m['added_at'] as String),
+        isNewToday: (m['is_new_today'] as int? ?? 0) == 1,
+        languageKey: m['language_key'] as String? ?? 'de_b2',
+      );
+
+  Map<String, dynamic> _batchEntryToRaw(BatchEntry e) => {
+        'id': e.id,
+        'language_key': e.languageKey,
+        'word': e.word,
+        'meaning': e.meaning,
+        'example_sentence': e.exampleSentence,
+        'example_translation': e.exampleTranslation,
+        'next_review_date': e.nextReviewDate?.toIso8601String(),
+        'ease_factor': e.easeFactor,
+        'interval_days': e.intervalDays,
+        'repetitions': e.repetitions,
+        'added_at': e.addedAt.toIso8601String(),
+        'is_new_today': e.isNewToday ? 1 : 0,
+      };
+
   // ── Check if backup exists ────────────────────────────────────────────────
 
   Future<Map<String, dynamic>?> fetchMeta({required String accessToken}) async {
@@ -243,4 +357,24 @@ class BackupService {
       return 'Server error.';
     }
   }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+
+/// Result of a bidirectional merge sync operation.
+class MergeResult {
+  const MergeResult({
+    required this.merged,
+    required this.added,
+    this.noRemoteBackup = false,
+  });
+
+  /// Total words in the merged state (batch + vault combined).
+  final int merged;
+
+  /// Net words added to local DB from the remote (can be 0 if remote was older).
+  final int added;
+
+  /// True when there was no remote backup to merge against.
+  final bool noRemoteBackup;
 }

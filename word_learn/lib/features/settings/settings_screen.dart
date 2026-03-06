@@ -155,7 +155,7 @@ class SettingsScreen extends ConsumerWidget {
           _BackupStatusRow(backup: backup),
           _ActionRow(
             label: backup.isSyncing ? 'Syncing…' : 'Sync Now',
-            sublabel: 'Upload local progress to cloud',
+            sublabel: 'Merge + sync progress across devices',
             color: backup.isSyncing
                 ? AppColors.mediumGray
                 : AppColors.primaryTeal,
@@ -346,9 +346,17 @@ class _BackupStatusRow extends StatelessWidget {
         icon = Icons.cloud_off_outlined;
     }
 
-    final counts = backup.batchWordCount != null
-        ? '${backup.batchWordCount} batch · ${backup.vaultWordCount} vault'
-        : null;
+    // Sub-label lines (WL-510): counts + last-merged timestamp.
+    final lines = <String>[];
+    if (backup.batchWordCount != null) {
+      lines.add(
+          '${backup.batchWordCount} batch · ${backup.vaultWordCount} vault');
+    }
+    if (backup.lastMergedAt != null) {
+      final added = backup.lastAddedFromRemote;
+      final addedStr = added > 0 ? ' (+$added from other device)' : '';
+      lines.add('Last merged ${_fmtAgo(backup.lastMergedAt!)}$addedStr');
+    }
 
     return ListTile(
       dense: true,
@@ -357,9 +365,9 @@ class _BackupStatusRow extends StatelessWidget {
         label,
         style: AppTypography.bodyMedium.copyWith(color: color),
       ),
-      subtitle: counts != null
+      subtitle: lines.isNotEmpty
           ? Text(
-              counts,
+              lines.join('\n'),
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.mediumGray,
                 fontSize: 11,
