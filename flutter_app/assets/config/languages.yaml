@@ -1,0 +1,54 @@
+languages:
+  - code: "en"
+    name: "English"
+    name_native: "English"
+    cefr_supported: [A1, A2, B1, B2, C1, C2]
+    script: "latin"
+    rtl: false
+    locale: "en_US"
+    flag_emoji: "🇬🇧"
+
+  - code: "de"
+    name: "German"
+    name_native: "Deutsch"
+    cefr_supported: [A1, A2, B1, B2, C1, C2]
+    script: "latin"
+    rtl: false
+    locale: "de_DE"
+    flag_emoji: "🇩🇪"
+
+  - code: "fr"
+    name: "French"
+    name_native: "Français"
+    cefr_supported: [A1, A2, B1, B2, C1, C2]
+    script: "latin"
+    rtl: false
+    locale: "fr_FR"
+    flag_emoji: "🇫🇷"
+
+  - code: "es"
+    name: "Spanish"
+    name_native: "Español"
+    cefr_supported: [A1, A2, B1, B2, C1, C2]
+    script: "latin"
+    rtl: false
+    locale: "es_ES"
+    flag_emoji: "🇪🇸"
+
+  - code: "it"
+    name: "Italian"
+    name_native: "Italiano"
+    cefr_supported: [A1, A2, B1, B2, C1, C2]
+    script: "latin"
+    rtl: false
+    locale: "it_IT"
+    flag_emoji: "🇮🇹"
+
+  - code: "tr"
+    name: "Turkish"
+    name_native: "Türkçe"
+    cefr_supported: [A1, A2, B1, B2, C1, C2]
+    script: "latin"
+    rtl: false
+    locale: "tr_TR"
+    flag_emoji: "🇹🇷"
