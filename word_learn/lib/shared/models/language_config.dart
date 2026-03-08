@@ -38,6 +38,28 @@ class LanguageConfig {
 /// Master registry of all available language × CEFR combinations.
 /// When a new CSV is added to assets/data/, add an entry here.
 const List<LanguageConfig> kAvailableLanguageConfigs = [
+  // ── German ────────────────────────────────────────────────────────────────
+  LanguageConfig(
+    languageCode: 'de',
+    cefrLevel: 'A1',
+    assetPath: 'assets/data/de_a1.csv',
+    languageName: 'German',
+    wordColumnHeader: 'German Word',
+  ),
+  LanguageConfig(
+    languageCode: 'de',
+    cefrLevel: 'A2',
+    assetPath: 'assets/data/de_a2.csv',
+    languageName: 'German',
+    wordColumnHeader: 'German Word',
+  ),
+  LanguageConfig(
+    languageCode: 'de',
+    cefrLevel: 'B1',
+    assetPath: 'assets/data/de_b1.csv',
+    languageName: 'German',
+    wordColumnHeader: 'German Word',
+  ),
   LanguageConfig(
     languageCode: 'de',
     cefrLevel: 'B2',
@@ -50,7 +72,29 @@ const List<LanguageConfig> kAvailableLanguageConfigs = [
     cefrLevel: 'C1',
     assetPath: 'assets/data/de_c1.csv',
     languageName: 'German',
-    wordColumnHeader: 'Abgelenkt sein',  // de_c1 has no header row — first word
+    wordColumnHeader: 'German Word',
+  ),
+  // ── Spanish ───────────────────────────────────────────────────────────────
+  LanguageConfig(
+    languageCode: 'es',
+    cefrLevel: 'A1',
+    assetPath: 'assets/data/es_a1.csv',
+    languageName: 'Spanish',
+    wordColumnHeader: 'Target Word',
+  ),
+  LanguageConfig(
+    languageCode: 'es',
+    cefrLevel: 'A2',
+    assetPath: 'assets/data/es_a2.csv',
+    languageName: 'Spanish',
+    wordColumnHeader: 'Target Word',
+  ),
+  LanguageConfig(
+    languageCode: 'es',
+    cefrLevel: 'B1',
+    assetPath: 'assets/data/es_b1.csv',
+    languageName: 'Spanish',
+    wordColumnHeader: 'Target Word',
   ),
   LanguageConfig(
     languageCode: 'es',

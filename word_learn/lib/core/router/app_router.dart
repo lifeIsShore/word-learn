@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/auth_screen.dart';
@@ -18,8 +19,10 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/vault/audit_complete_screen.dart';
 import '../../features/vault/audit_session_screen.dart';
 import '../../features/vault/vault_screen.dart';
+import '../../shared/state/auth_provider.dart';
+import '../../shared/state/onboarding_provider.dart';
 
-/// Route names — align with docs/BLUEPRINT.md.
+/// Route name constants — align with docs/BLUEPRINT.md.
 class AppRoutes {
   static const String splash = '/';
   static const String auth = '/auth';
@@ -39,11 +42,82 @@ class AppRoutes {
   static const String ash = '/ash';
   static const String auditSession = '/vault/audit';
   static const String auditComplete = '/vault/audit/complete';
+
+  // ── Route groups used by the redirect guard ──────────────────────────────
+
+  /// Routes that are always accessible — no auth or onboarding required.
+  static const _publicRoutes = {splash, auth};
+
+  /// Onboarding routes — accessible only when authenticated but not onboarded.
+  static const _onboardingRoutes = {
+    onboardingWelcome,
+    onboardingBaseLanguage,
+    onboardingTargetLanguages,
+    onboardingCefr,
+    onboardingCurfew,
+    onboardingDrip,
+    onboardingPaywall,
+  };
+
+  static bool isPublic(String location) =>
+      _publicRoutes.any((r) => location.startsWith(r));
+
+  static bool isOnboarding(String location) =>
+      _onboardingRoutes.any((r) => location.startsWith(r));
 }
 
-GoRouter createAppRouter() {
+/// Creates the app router with Riverpod-aware redirect guards.
+///
+/// Guard logic (evaluated on every navigation):
+///
+///   1. AuthStatus.unknown   → still initialising, stay on splash.
+///   2. Unauthenticated      → redirect to /auth unless already on a public route.
+///   3. Authenticated + not onboarded → redirect to /onboarding/welcome
+///      unless already in an onboarding route.
+///   4. Authenticated + onboarded + trying to reach /auth or onboarding
+///      → redirect to /home (user is already set up).
+///   5. Otherwise            → allow navigation as requested.
+GoRouter createAppRouter(WidgetRef ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    // Refresh the router whenever auth or onboarding state changes.
+    refreshListenable: _ProviderListenable(ref),
+    redirect: (context, state) {
+      final location = state.matchedLocation;
+
+      final authState = ref.read(authProvider);
+      final onboarding = ref.read(onboardingProvider);
+
+      // 1. Still initialising — stay on splash.
+      if (authState.status == AuthStatus.unknown) {
+        return location == AppRoutes.splash ? null : AppRoutes.splash;
+      }
+
+      final isAuthenticated = authState.isAuthenticated;
+      final hasOnboarded = onboarding.isOnboardingComplete;
+      final isPublic = AppRoutes.isPublic(location);
+      final isOnboardingRoute = AppRoutes.isOnboarding(location);
+
+      // 2. Not authenticated → send to auth (unless already on a public route).
+      if (!isAuthenticated && !isPublic) {
+        return AppRoutes.auth;
+      }
+
+      // 3. Authenticated but onboarding not complete → send to onboarding.
+      if (isAuthenticated && !hasOnboarded && !isOnboardingRoute && !isPublic) {
+        return AppRoutes.onboardingWelcome;
+      }
+
+      // 4. Authenticated + onboarded → don't allow going back to auth/onboarding.
+      if (isAuthenticated && hasOnboarded && (isPublic || isOnboardingRoute)) {
+        // Allow splash to run its own init logic.
+        if (location == AppRoutes.splash) return null;
+        return AppRoutes.home;
+      }
+
+      // 5. All good — allow.
+      return null;
+    },
     routes: <RouteBase>[
       GoRoute(
         path: AppRoutes.splash,
@@ -119,4 +193,16 @@ GoRouter createAppRouter() {
       ),
     ],
   );
+}
+
+// ── Listenable bridge ─────────────────────────────────────────────────────────
+// GoRouter's refreshListenable needs a ChangeNotifier.
+// This bridges Riverpod providers into that interface so the router
+// re-evaluates its redirect whenever auth or onboarding state changes.
+
+class _ProviderListenable extends ChangeNotifier {
+  _ProviderListenable(WidgetRef ref) {
+    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    ref.listen<OnboardingState>(onboardingProvider, (_, __) => notifyListeners());
+  }
 }

@@ -6,6 +6,9 @@ import 'core/theme/app_theme.dart';
 import 'shared/state/settings_provider.dart';
 
 /// WordLearn app root — reactive theme + router.
+///
+/// The router is created with a [WidgetRef] so it can listen to auth and
+/// onboarding providers and redirect accordingly (WL-Session 16 guard).
 class WordLearnApp extends ConsumerWidget {
   const WordLearnApp({super.key});
 
@@ -19,7 +22,7 @@ class WordLearnApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
-      routerConfig: createAppRouter(),
+      routerConfig: createAppRouter(ref),
     );
   }
 }

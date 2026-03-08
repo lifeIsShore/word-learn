@@ -34,6 +34,12 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/data/de_a1.csv
+    - assets/data/de_a2.csv
+    - assets/data/de_b1.csv
     - assets/data/de_b2.csv
     - assets/data/de_c1.csv
+    - assets/data/es_a1.csv
+    - assets/data/es_a2.csv
+    - assets/data/es_b1.csv
     - assets/data/es_b2.csv
