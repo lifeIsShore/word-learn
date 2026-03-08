@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | Session 16: Vocab expansion (de_a1/a2/b1, es_a1/a2/b1 — 10 words each), language_config.dart updated, de_c1 header fix. Router guards — auth + onboarding redirect logic, _ProviderListenable, createAppRouter(ref) | 2026-03-08 | See Session 16 notes |
 | — | WL-410: Privacy Controls — DataExportService (JSON + native share sheet), AccountDeletionService (backend soft-delete + local wipe), backend DELETE /user/delete, Settings ACCOUNT section wired | 2026-03-06 | See Session 15 notes |
 | — | WL-510: Conflict Resolution — SyncResolver (LWW), BackupService.downloadAndMerge(), bidirectional sync in BackupNotifier, 30-min background timer in HomeScreen, lastMergedAt in Settings | 2026-03-06 | See Session 14 notes |
 | — | WL-190: Vault Audit (quarterly re-validation, AuditNotifier, AuditSessionScreen, AuditCompleteScreen, audit due banner in VaultScreen) + Polish (empty batch guard, snackbar consistency) | 2026-03-05 | See Session 13 notes |
