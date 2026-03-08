@@ -15,6 +15,7 @@ import '../../shared/state/backup_provider.dart';
 import '../../shared/state/onboarding_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
+import '../../shared/widgets/offline_banner.dart';
 
 /// WL-400 / WL-410: User Profile & Settings Screen.
 /// Sections: Profile · Learning · Appearance · Stats · Privacy · Backup · Account.
@@ -57,8 +58,12 @@ class SettingsScreen extends ConsumerWidget {
         ),
         title: Text('Settings', style: AppTypography.labelLarge),
       ),
-      body: ListView(
+      body: Column(
         children: [
+          const OfflineBanner(), // Session 19
+          Expanded(
+            child: ListView(
+              children: [
           // ── PROFILE ──────────────────────────────────────────────────
           _SectionHeader(label: 'PROFILE'),
           _EditableRow(
@@ -192,6 +197,9 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           SizedBox(height: AppSpacing.xxl),
+        ],
+            ),
+          ),
         ],
       ),
     );

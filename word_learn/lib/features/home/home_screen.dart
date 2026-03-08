@@ -18,6 +18,7 @@ import '../../shared/state/session_provider.dart';
 import '../../shared/state/settings_provider.dart';
 import '../../shared/state/backup_provider.dart';
 import '../../shared/state/streak_provider.dart';
+import '../../shared/widgets/offline_banner.dart';
 import '../../shared/state/vault_provider.dart';
 
 /// Home screen — WL-050, WL-200 (Curfew), WL-210 (Ice State), WL-600 (Language switcher).
@@ -139,6 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       body: IceStateScaffoldBackground(
         child: Column(
           children: [
+            const OfflineBanner(), // Session 19
             const IceStateBanner(),
             Expanded(
               child: SingleChildScrollView(

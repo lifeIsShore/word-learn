@@ -34,11 +34,50 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Session 18: App icon + splash
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+
+# ── flutter_launcher_icons config ──────────────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: 'assets/icon/icon_1024.png'
+  # Android adaptive icon
+  adaptive_icon_background: '#008B8B'
+  adaptive_icon_foreground: 'assets/icon/icon_foreground_1024.png'
+  # iOS: remove alpha channel (App Store requirement)
+  remove_alpha_ios: true
+  # Web (future)
+  web:
+    generate: false
+
+# ── flutter_native_splash config ───────────────────────────────────────────────
+flutter_native_splash:
+  # Background colour matches paperWhite
+  color: '#FAFAFA'
+  color_dark: '#0D1B2A'
+  # Centred logo
+  image: assets/splash/wordlearn.png
+  image_dark: assets/splash/wordlearn_dark.png
+  # Android 12+ splash (uses color + icon, no custom image needed)
+  android_12:
+    color: '#FAFAFA'
+    color_dark: '#0D1B2A'
+    image: assets/icon/icon_1024.png
+    icon_background_color: '#008B8B'
+  # iOS
+  ios: true
+  android: true
+  # Don't fullscreen — match app theme
+  fullscreen: false
 
 flutter:
   uses-material-design: true
 
   assets:
+    - assets/icon/
+    - assets/splash/
     - assets/data/de_a1.csv
     - assets/data/de_a2.csv
     - assets/data/de_b1.csv

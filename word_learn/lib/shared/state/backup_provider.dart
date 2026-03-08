@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../auth/auth_repository.dart';
 import '../backup/backup_service.dart';
+import 'connectivity_provider.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,18 @@ class BackupNotifier extends Notifier<BackupState> {
 
     // Skip network in dev mode when running silently.
     if (AppConfig.devModeSkipAuth && silent) return true;
+
+    // Session 19: Skip sync entirely when offline — no error noise.
+    final isOnline = ref.read(connectivityProvider);
+    if (!isOnline) {
+      if (!silent) {
+        state = state.copyWith(
+          status: BackupStatus.failed,
+          error: 'No internet connection. Sync will resume automatically.',
+        );
+      }
+      return false;
+    }
 
     final token = await _auth.accessToken;
     final userId = AppConfig.devModeSkipAuth

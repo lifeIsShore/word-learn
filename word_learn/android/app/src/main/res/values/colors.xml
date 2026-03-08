@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Session 18: Colour resources for splash screen -->
+<resources>
+    <color name="splashBackground">#FAFAFA</color>
+    <color name="splashBackgroundDark">#0D1B2A</color>
+    <!-- Adaptive icon background: primaryTeal -->
+    <color name="iconBackground">#008B8B</color>
+</resources>
