@@ -6,6 +6,8 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/config/app_config.dart';
+import '../../shared/notifications/notification_scheduler.dart';
 import '../../shared/state/backup_provider.dart';
 import '../../shared/state/curfew_status_provider.dart';
 import '../../shared/state/session_provider.dart';
@@ -88,6 +90,10 @@ class SessionCompleteScreen extends ConsumerWidget {
                       .completeAndClear();
                   // WL-500 Phase 2: Silent background backup after every session.
                   ref.read(backupProvider.notifier).sync(silent: true);
+                  // Session 17: Cancel streak-at-risk warning — session is done.
+                  if (!AppConfig.devModeSkipFirebase) {
+                    await NotificationScheduler.instance.cancelStreakWarning();
+                  }
                   if (context.mounted) context.go(AppRoutes.home);
                 },
                 child: const Text('CONTINUE'),

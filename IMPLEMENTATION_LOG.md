@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | Session 17: Push Notifications — NotificationService (FCM + local), NotificationScheduler (daily reminder, streak-at-risk warning, drip nudge), main.dart Firebase init, firebase_options.dart placeholder, devModeSkipFirebase flag, Android manifest permissions + FCM channel + boot receiver, iOS AppDelegate + Info.plist background modes, streak warning cancelled on session complete | 2026-03-08 | See Session 17 notes |
 | — | Session 16: Vocab expansion (de_a1/a2/b1, es_a1/a2/b1 — 10 words each), language_config.dart updated, de_c1 header fix. Router guards — auth + onboarding redirect logic, _ProviderListenable, createAppRouter(ref) | 2026-03-08 | See Session 16 notes |
 | — | WL-410: Privacy Controls — DataExportService (JSON + native share sheet), AccountDeletionService (backend soft-delete + local wipe), backend DELETE /user/delete, Settings ACCOUNT section wired | 2026-03-06 | See Session 15 notes |
 | — | WL-510: Conflict Resolution — SyncResolver (LWW), BackupService.downloadAndMerge(), bidirectional sync in BackupNotifier, 30-min background timer in HomeScreen, lastMergedAt in Settings | 2026-03-06 | See Session 14 notes |

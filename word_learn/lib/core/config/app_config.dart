@@ -13,6 +13,11 @@ class AppConfig {
   // ── Toggle this to enable/disable auth during development ──────────────────
   static const bool devModeSkipAuth = true;
 
+  // ── Toggle this once `flutterfire configure` has been run ──────────────────
+  // Set to false after adding google-services.json (Android) and
+  // GoogleService-Info.plist (iOS) to the project.
+  static const bool devModeSkipFirebase = true;
+
   // ── Backend base URL ────────────────────────────────────────────────────────
   // Change to your VPS IP/domain before release.
   static const String apiBaseUrl = 'http://10.0.2.2:8000/api/v1';

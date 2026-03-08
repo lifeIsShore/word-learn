@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -16,6 +17,8 @@ import '../../shared/state/settings_provider.dart';
 import '../../shared/state/streak_provider.dart';
 import '../../shared/state/audit_provider.dart';
 import '../../shared/state/vault_provider.dart';
+import '../../shared/notifications/notification_service.dart';
+import '../../shared/notifications/notification_scheduler.dart';
 
 /// Initial screen — logo/title, warms vocabulary cache, initialises DB, then redirects.
 ///
@@ -93,6 +96,51 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         (cfg) => ref.read(languageBatchProvider(cfg).notifier).init(),
       ),
     );
+
+    // 5. Initialise notifications (Session 17).
+    //    Skip if Firebase is not configured yet (devModeSkipFirebase = true).
+    if (!AppConfig.devModeSkipFirebase) {
+      await _initNotifications();
+    }
+  }
+
+  /// Initialise NotificationService and schedule all WordLearn notifications
+  /// based on current user state.
+  Future<void> _initNotifications() async {
+    final onboarding = ref.read(onboardingProvider);
+    final streak = ref.read(streakProvider);
+
+    await NotificationService.instance.init(
+      onTap: (payload) {
+        // Notification tap routing — navigate to the route in the payload.
+        if (!mounted || payload == null) return;
+        try {
+          final data = Map<String, dynamic>.from(
+            // ignore: avoid_dynamic_calls
+            (payload.contains('{'))
+                ? (payload.isNotEmpty ? {} : {})
+                : {},
+          );
+          // Simple approach: navigate to /home for all taps.
+          // Extend this when deep-link routing is needed.
+          context.go(AppRoutes.home);
+        } catch (_) {
+          context.go(AppRoutes.home);
+        }
+      },
+    );
+
+    final scheduler = NotificationScheduler.instance;
+
+    // Daily reminder at 09:00.
+    await scheduler.scheduleDailyReminder(
+      batchCount: 0, // Will be accurate after batch loads.
+    );
+
+    // Streak-at-risk warning — only if session not done today.
+    if (!streak.sessionCompletedToday) {
+      await scheduler.scheduleStreakWarning(curfew: onboarding.curfew);
+    }
   }
 
   @override
