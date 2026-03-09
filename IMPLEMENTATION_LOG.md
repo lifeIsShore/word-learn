@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-05 (Session 11)
+**Last Updated:** 2026-03-09 (Session 20 — Bug Fix)
 
 ---
 
@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | Session 20: Bug Fix — Infinite loading screen on device. Two bugs: (1) GoRouter recreated on every build in app.dart, causing nav loop back to splash. (2) Notification permission dialog awaited during init, blocking splash indefinitely. | 2026-03-09 | See Session 20 notes |
 | — | Session 19: Offline UX — ConnectivityNotifier (TCP probe, 15s poll), OfflineBanner (animated, slides on/off), OfflineAwareBody widget, BackupNotifier skips sync when offline with graceful error, OfflineBanner wired to HomeScreen + SettingsScreen | 2026-03-08 | Zero new dependencies |
 | — | Session 18: App icon + splash screen — icon_1024.png (teal W lettermark), icon_foreground_1024.png, all Android mipmap densities, all iOS icon sizes, launch images, flutter_launcher_icons + flutter_native_splash config in pubspec, adaptive icon XML, Android colors.xml + styles.xml updated, iOS LaunchScreen.storyboard updated, CFBundleDisplayName → WordLearn, install_assets.py + wordlearn_assets.zip for one-command install | 2026-03-08 | Run install_assets.py then flutter pub get + dart run flutter_launcher_icons + dart run flutter_native_splash:create |
 | — | Session 17: Push Notifications — NotificationService (FCM + local), NotificationScheduler (daily reminder, streak-at-risk warning, drip nudge), main.dart Firebase init, firebase_options.dart placeholder, devModeSkipFirebase flag, Android manifest permissions + FCM channel + boot receiver, iOS AppDelegate + Info.plist background modes, streak warning cancelled on session complete | 2026-03-08 | See Session 17 notes |
@@ -80,7 +81,7 @@
 | — | App router (go_router) | 2026-03-05 | Splash, Auth, Onboarding Welcome, Home routes |
 | — | Splash screen | 2026-03-05 | WordLearn title, auto-navigate to onboarding welcome after 1.5s |
 | — | Auth screen (placeholder) | 2026-03-05 | Buttons to onboarding / skip to Home (dev) |
-| — | Welcome screen (WL-010) | 2026-03-05 | “Scholar, welcome to WordLearn.” + GET STARTED → Home |
+| — | Welcome screen (WL-010) | 2026-03-05 | "Scholar, welcome to WordLearn." + GET STARTED → Home |
 | — | Home screen (placeholder) | 2026-03-05 | Greeting, stats placeholders, START SESSION button |
 | — | Riverpod + onboarding state | 2026-03-05 | OnboardingState, OnboardingNotifier, ProviderScope |
 | — | Base Language screen (WL-011) | 2026-03-05 | Single select, 6 languages, default en |
@@ -101,6 +102,44 @@
 ---
 
 ## Session Notes
+
+### Session 20: Bug Fix — Infinite Loading Screen on Device (2026-03-09)
+
+**Problem reported**
+App downloaded to physical device. The splash/loading screen never advanced — the circular progress indicator spun indefinitely and the app never navigated to login or home.
+
+**Root cause analysis — two compounding bugs found**
+
+**Bug 1 (Critical): GoRouter recreated on every build — `lib/app.dart`**
+
+`WordLearnApp` was a `ConsumerWidget`. Its `build()` method called `createAppRouter(ref)` directly. Every time any provider changed (including `settingsProvider` changing theme), Flutter called `build()` again, constructing a brand new `GoRouter` instance. Each new router:
+- Reset `initialLocation` back to `/` (splash)
+- Destroyed the existing navigation stack
+- Created a new `_ProviderListenable` that re-subscribed to auth/onboarding
+
+This caused a navigation loop: splash init would trigger provider state changes → providers triggered rebuild → new router sent app back to splash → splash started init again.
+
+**Fix:** Converted `WordLearnApp` to `ConsumerStatefulWidget`. The router is created once in state via `late final _router = createAppRouter(ref)` and reused across all rebuilds. Theme changes no longer recreate the router.
+
+**Bug 2 (Secondary): Notification permission dialog blocked the splash loading sequence — `lib/features/splash/splash_screen.dart`**
+
+`_initApp()` called `_initNotifications()` which called `NotificationService.instance.init()` → `requestNotificationsPermission()` on Android. On physical devices, this displays a system permission dialog and waits for user input before returning. Since this was `await`ed inside `Future.wait([minDelay, _initApp()])`, the entire splash was blocked until the user responded to (or dismissed) the permission prompt — making the loading screen appear frozen indefinitely.
+
+**Fix:** Removed `_initNotifications()` from `_initApp()`. After the `context.go()` navigation call completes, notifications are scheduled via a fire-and-forget helper (`_initNotificationsFireAndForget()`). Errors from notification init are caught and logged as non-fatal — a notification scheduling failure must never affect app launch.
+
+**Files changed**
+```
+MOD  lib/app.dart                                  ← ConsumerStatefulWidget; router cached in state
+MOD  lib/features/splash/splash_screen.dart        ← notifications deferred post-navigation; fire-and-forget
+```
+
+**Testing checklist**
+- First launch: splash → 1.5s + DB init + vocab warmup → auth check → `/onboarding/welcome`. Notification permission dialog appears after navigation, not blocking.
+- Returning user: same flow, ends at `/home` directly.
+- Theme toggle in Settings: no longer resets navigation to splash.
+- Notification permission denial: app continues normally; daily reminders simply won't fire.
+
+---
 
 ### Session: 2026-03-05 (Initial Setup)
 
@@ -130,7 +169,7 @@
 ### Session: 2026-03-05 (Onboarding flow; Auth/Payment deferred)
 
 **What was done**
-- **Auth & payment deferred:** Auth screen and IAP/Paywall are implemented as placeholders and **disabled for testing**. Auth screen shows “Auth is disabled for easier testing.” Paywall shows tier cards but only “Continue with Free” is active; Subscribe buttons disabled. To be enabled later.
+- **Auth & payment deferred:** Auth screen and IAP/Paywall are implemented as placeholders and **disabled for testing**. Auth screen shows "Auth is disabled for easier testing." Paywall shows tier cards but only "Continue with Free" is active; Subscribe buttons disabled. To be enabled later.
 - **Riverpod:** Added `flutter_riverpod`; app wrapped in `ProviderScope`. Created `OnboardingState` and `OnboardingNotifier` for base language, target languages, CEFR per language, curfew, daily drip.
 - **Onboarding flow:** Welcome → Base Language → Target Languages → CEFR → Curfew → Drip → Paywall → Home. All screens implemented; back/next navigation wired.
 - **Screens:** Base Language (WL-011), Target Languages (WL-012), CEFR (WL-013), Curfew (WL-014), Drip (WL-015), Paywall (WL-016 placeholder). Home now reads onboarding state for curfew time and drip count.
@@ -314,7 +353,7 @@
 - **Design:** Swiss Modernist, 8px grid, Ligne Claire. Colors/typography in PRD Design System section; reuse in Flutter theme.
 - **State:** Riverpod in use; `onboardingProvider` holds onboarding choices. Auth and subscription state to be added when auth/IAP are enabled.
 - **Auth & payment:** Deferred and disabled for easier testing. Auth screen and Paywall (IAP) are placeholders; enable when ready (WL-001–005, WL-016 full, WL-300, WL-301, WL-310).
-- **Backend:** Supabase (Auth, DB, Edge Functions). Local-first: SQLite + SQLCipher for progress; sync via “Ghost Backup” protocol.
+- **Backend:** Supabase (Auth, DB, Edge Functions). Local-first: SQLite + SQLCipher for progress; sync via "Ghost Backup" protocol.
 
 ---
 
@@ -339,7 +378,7 @@
 
 **Architecture decisions**
 - Audit scheduling uses a simple settings key (`audit.last_audit_date`). No separate DB table needed.
-- Audit session does NOT record streak or trigger backup — it’s a maintenance task, not a daily session.
+- Audit session does NOT record streak or trigger backup — it's a maintenance task, not a daily session.
 - Audit is triggered by `init()` on startup only. No real-time polling.
 - First audit triggers only when vault has ≥ 10 words (no point auditing 2 words). Subsequent audits trigger every 90 days.
 
@@ -473,61 +512,6 @@ With `false`: splash → /auth if no stored token, real JWT flow.
 **Priority:** P1 | **Effort:** 3 points
 **Dependency:** WL-500 Ghost Backup (complete ✓)
 
-**Why this story next**
-WL-500 (Ghost Backup) is stable and proven. WL-510 is its natural follow-on — without conflict resolution, two devices editing the same word's SRS state would silently overwrite each other. Deferred IAP stories (WL-300/301/310) require App Store/Play Store credentials and a live billing environment; WL-510 can be built and tested entirely offline/locally.
-
-**User story (from user-stories.md)**
-> As a multi-device user, I want to study on both iPhone and iPad without losing progress, so that my learning continues seamlessly across devices.
-
-**Scope of this session**
-
-1. **`SyncResolver`** (`shared/backup/sync_resolver.dart`)
-   - `resolveWordConflict(local: BatchEntry, remote: BatchEntry) → BatchEntry` — returns the entry with the more recent `lastReviewedAt` timestamp (last-write-wins).
-   - `mergeBatches(local: List<BatchEntry>, remote: List<BatchEntry>) → List<BatchEntry>` — unions the two lists; for words present in both, calls `resolveWordConflict`; words only in one list are kept as-is.
-   - `mergeVaults(local: List<VaultEntry>, remote: List<VaultEntry>) → List<VaultEntry>` — same pattern keyed by vocabulary ID.
-   - Fully pure functions — no I/O, no Riverpod. Easy to unit-test.
-
-2. **`BackupService` (updated)** (`shared/backup/backup_service.dart`)
-   - `downloadAndMerge()`: new method. Downloads the cloud backup, decrypts + decompresses, then calls `SyncResolver.mergeBatches` and `mergeVaults` against current local SQLite state before writing. Replaces the destructive `clearAllForRestore()` path (which stays for the "start fresh" flow).
-   - Existing `upload()` unchanged.
-
-3. **`BackupNotifier` (updated)** (`shared/state/backup_provider.dart`)
-   - `sync(silent:)` now calls `downloadAndMerge()` before `upload()` — fetch → merge → write local → re-upload merged state. This makes every sync a bidirectional merge, not a destructive overwrite.
-   - `BackupState` gains `lastMergedAt` timestamp field for debugging/display.
-
-4. **Background sync timer** (`features/home/home_screen.dart`)
-   - Existing 60-second curfew timer refactored into a shared `_HomeTimers` helper.
-   - Add a 30-minute periodic timer that fires `ref.read(backupProvider.notifier).sync(silent: true)` when the device is online. Timer cancelled in `dispose()`.
-
-5. **Settings section update** (`features/settings/settings_screen.dart`)
-   - BACKUP section: add `Last synced: X min ago` and `Last merged: X min ago` sub-labels beneath the Sync Now button (reads from `BackupState`).
-
-**What is NOT in scope this session**
-- Three-way merge (base + local + remote) — LWW is sufficient for MVP.
-- Operational transform / CRDTs — over-engineered for a word-learning app.
-- Push notifications from server when another device uploads (Phase 2).
-- Conflict visualisation UI ("These 3 words differ — pick a version") — Phase 2.
-
-**Acceptance criteria checklist (from WL-510)**
-- [ ] `SyncResolver.resolveWordConflict` returns most-recent entry
-- [ ] `SyncResolver.mergeBatches` correctly unions + deduplicates
-- [ ] `BackupService.downloadAndMerge()` does not wipe local data
-- [ ] Every `sync()` call is now bidirectional (fetch → merge → upload)
-- [ ] 30-minute background timer fires silently on HomeScreen
-- [ ] Settings shows `lastMergedAt` timestamp
-- [ ] No cross-language data leaks (each merge keyed by `language_key`)
-- [ ] Unit tests: LWW single-word, full batch merge, vault merge, empty-remote edge case, empty-local edge case
-
-**Files to create / modify**
-```
-NEW   lib/shared/backup/sync_resolver.dart
-MOD   lib/shared/backup/backup_service.dart       (add downloadAndMerge)
-MOD   lib/shared/state/backup_provider.dart       (sync = merge+upload; lastMergedAt)
-MOD   lib/features/home/home_screen.dart          (30-min sync timer)
-MOD   lib/features/settings/settings_screen.dart  (lastMergedAt label)
-NEW   test/sync_resolver_test.dart
-```
-
 **Completed this session**
 ```
 NEW   lib/shared/backup/sync_resolver.dart            ✓ SyncResolver + VaultEntrySnapshot
@@ -545,27 +529,17 @@ NEW   test/sync_resolver_test.dart                    ✓ 18 unit tests (LWW, me
 
 next to do:
 📍 Where You Are
-The entire self-implementable feature set is complete. Every story that can be built without external service credentials has been shipped. Here's the honest status:
-✅ Done (all self-contained features)
-All core learning loop, SRS, multi-language, vault, curfew/ice/ash, settings, backup, sync, and privacy features are live.
-🔴 Blocked on external credentials
-StoryWhat's needed to unblockWL-002 Google OAuthGoogle Cloud project + OAuth client IDWL-003 Apple OAuthApple Developer account + Sign in with Apple capabilityWL-300/301 IAPApp Store Connect + Play Console billing setupWL-310 EntitlementsDepends on WL-300/301WL-016 Paywall (full)Depends on WL-300
+The entire self-implementable feature set is complete. Every story that can be built without external service credentials has been shipped.
 
-🔜 What's Actually Next
-Since the code is feature-complete, the real work now is pre-launch hardening — and there's a meaningful list of things you can do right now without any credentials:
-Tier 1 — Do now, before touching auth/IAP
-These are things that matter at launch and are fully implementable today:
-1. Onboarding persistence fix — Right now devModeSkipAuth=true means users skip the auth screen. When you flip that flag off for real launch, returning users need to land correctly. The sign-in → onboarding → home routing logic needs a final pass.
-2. Push Notifications (WL-520) — Firebase Cloud Messaging setup takes ~2 hours and is independent of auth/IAP. Daily streak reminders, curfew warnings. This is a strong retention driver and 100% implementable now.
-3. More vocabulary data — The app currently ships with a small B2 German dataset. Before launch you'd want A1/A2/B1/C1 German and at least A1→B2 for Spanish. The VOCABULARY_ENTRY_GUIDE.md you just got tells you exactly how to format it.
-4. App icon + splash screen — Launch assets. Fully implementable now.
-5. Onboarding polish / animations — The onboarding flow works but has no transitions or motion. Small investment, high perceived quality.
-6. Error boundary & offline UX — The app assumes connectivity for backup sync. What does it show when offline? This should be graceful, not a crash or a red error.
-7. TestFlight / Internal Testing setup — You can submit to TestFlight now without IAP enabled. This is how you'd start real device testing.
+🔜 What's Actually Next (Tier 1 — no credentials needed)
+1. Onboarding persistence fix
+2. Push Notifications (WL-520)
+3. More vocabulary data
+4. App icon + splash screen
+5. Onboarding polish / animations
+6. Error boundary & offline UX
+7. TestFlight / Internal Testing setup
+
 Tier 2 — Once you have credentials
-8. WL-002/003 Google + Apple OAuth — Flip devModeSkipAuth = false. This is the biggest unlock because real users can then sign in, their backups actually work, and you can test the full multi-device sync flow end-to-end.
-9. WL-300/301/310 IAP — Revenue. Comes after OAuth because you need real users to test receipt validation properly.
-
-My Recommendation
-The most valuable next session is Push Notifications — it's the only major retention feature not yet built, it's fully doable now, and it directly impacts Day-7 and Day-30 retention (your two weakest success metrics in the PRD). After that, vocabulary data expansion so the app has enough content to actually be useful at launch.
-Want to start with push notifications, vocabulary expansion, or something else from that list?
+8. WL-002/003 Google + Apple OAuth
+9. WL-300/301/310 IAP

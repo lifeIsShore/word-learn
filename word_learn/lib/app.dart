@@ -7,13 +7,25 @@ import 'shared/state/settings_provider.dart';
 
 /// WordLearn app root — reactive theme + router.
 ///
-/// The router is created with a [WidgetRef] so it can listen to auth and
-/// onboarding providers and redirect accordingly (WL-Session 16 guard).
-class WordLearnApp extends ConsumerWidget {
+/// BUG FIX (Session 20): The router must be created once and cached.
+/// Previously, createAppRouter(ref) was called directly inside build(),
+/// which created a new GoRouter instance on every rebuild (e.g. when
+/// themeMode changed). Each new router reset navigation state back to
+/// the splash route, causing the infinite loading loop seen on device.
+///
+/// Fix: Use ConsumerStatefulWidget + cache the router in initState().
+class WordLearnApp extends ConsumerStatefulWidget {
   const WordLearnApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WordLearnApp> createState() => _WordLearnAppState();
+}
+
+class _WordLearnAppState extends ConsumerState<WordLearnApp> {
+  late final _router = createAppRouter(ref);
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(settingsProvider).themeMode;
 
     return MaterialApp.router(
@@ -22,7 +34,7 @@ class WordLearnApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
-      routerConfig: createAppRouter(ref),
+      routerConfig: _router,
     );
   }
 }

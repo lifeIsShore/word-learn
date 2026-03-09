@@ -25,6 +25,12 @@ import '../../shared/notifications/notification_scheduler.dart';
 /// screen is shown. Ensures zero-flash state restoration.
 ///
 /// WL-600: Warms vocabulary cache for all registered language configs.
+///
+/// BUG FIX (Session 20): Notifications initialisation is deferred to AFTER
+/// navigation. On some Android devices, requestNotificationsPermission() can
+/// stall waiting for user input, blocking the entire splash init sequence and
+/// causing the app to appear frozen on the loading screen indefinitely.
+/// Notifications are now fire-and-forget, kicked off after context.go().
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -41,6 +47,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initAndNavigate() async {
     // Run DB init + vocab cache warm-up in parallel with the minimum splash.
+    // NOTE: notifications are intentionally NOT included here — they are
+    // scheduled after navigation so a permission dialog never blocks the
+    // loading screen.
     await Future.wait([
       Future<void>.delayed(const Duration(milliseconds: 1500)),
       _initApp(),
@@ -53,14 +62,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Home (or onboarding if first launch) without any login screen.
     final authStartup =
         await ref.read(authProvider.notifier).checkStartupAuth();
-    final hasOnboarded =
-        ref.read(onboardingProvider).isOnboardingComplete;
 
     if (!mounted) return;
 
-    // Routing logic:
-    //   devBypass / sessionRestored → go straight to app (home or onboarding)
-    //   noSession                   → go to auth screen
+    final hasOnboarded = ref.read(onboardingProvider).isOnboardingComplete;
+
+    // Navigate first, schedule notifications in the background afterwards.
     switch (authStartup) {
       case AuthStartupResult.noSession:
         context.go(AppRoutes.auth);
@@ -68,9 +75,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       case AuthStartupResult.sessionRestored:
         context.go(hasOnboarded ? AppRoutes.home : AppRoutes.onboardingWelcome);
     }
+
+    // Fire-and-forget: schedule notifications after navigation so a
+    // permission dialog never blocks the loading screen.
+    _initNotificationsFireAndForget();
   }
 
   /// Opens DB, loads all persisted state, warms vocabulary cache.
+  /// Does NOT initialise notifications — see _initNotificationsFireAndForget.
   Future<void> _initApp() async {
     // 1. Open the SQLite database (creates tables on first launch).
     await DatabaseService.instance.database;
@@ -95,10 +107,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         (cfg) => ref.read(languageBatchProvider(cfg).notifier).init(),
       ),
     );
+  }
 
-    // 5. Initialise local notifications (Session 17).
-    //    Always initialise local notifications; FCM is guarded separately.
-    await _initNotifications();
+  /// Schedule local notifications in the background, AFTER navigation.
+  /// Errors are swallowed — notification failures must never crash the app.
+  void _initNotificationsFireAndForget() {
+    _initNotifications().catchError((Object e) {
+      // Notifications are non-critical. Log and continue.
+      debugPrint('[WordLearn] Notification init error (non-fatal): $e');
+    });
   }
 
   /// Initialise NotificationService and schedule all WordLearn notifications
