@@ -13,8 +13,6 @@ import 'notification_service.dart';
 ///   1. DAILY STUDY REMINDER
 ///      Fires every day at [dailyReminderTime] (default 09:00).
 ///      "Time to study! Your batch has N words waiting."
-///      Suppressed if [sessionCompletedToday] == true at fire time
-///      (handled by checking state on app resume — we cancel and reschedule).
 ///
 ///   2. STREAK-AT-RISK WARNING
 ///      Fires 60 minutes before curfew if no session completed today.
@@ -26,32 +24,19 @@ import 'notification_service.dart';
 ///      "Your batch is getting thin — tap to add new words."
 ///
 /// All times use the device's local timezone via the `timezone` package.
-///
-/// Scheduling is idempotent: calling schedule* methods cancels the existing
-/// notification for that type before creating a new one.
 class NotificationScheduler {
   NotificationScheduler._();
   static final NotificationScheduler instance = NotificationScheduler._();
 
   final _plugin = FlutterLocalNotificationsPlugin();
 
-  // ── Notification channel (reuse from NotificationService) ────────────────
   static const _channelId = 'wordlearn_study';
   static const _channelName = 'Study Reminders';
 
-  // ── Route payloads ────────────────────────────────────────────────────────
   static String _payload(String route) => json.encode({'route': route});
 
   // ── 1. Daily study reminder ───────────────────────────────────────────────
 
-  /// Schedule (or reschedule) the daily study reminder.
-  ///
-  /// [dailyTime] — time of day to fire (default 09:00).
-  /// [batchCount] — shown in the notification body.
-  ///
-  /// Call this:
-  ///   • On app startup (splash screen).
-  ///   • When the user changes curfew / drip settings.
   Future<void> scheduleDailyReminder({
     TimeOfDay dailyTime = const TimeOfDay(hour: 9, minute: 0),
     int batchCount = 0,
@@ -61,7 +46,6 @@ class NotificationScheduler {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = _nextInstanceOf(now, dailyTime.hour, dailyTime.minute);
 
-    // If the time has already passed today, schedule for tomorrow.
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -85,39 +69,27 @@ class NotificationScheduler {
         ),
         iOS: const DarwinNotificationDetails(),
       ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time, // repeat daily
+      matchDateTimeComponents: DateTimeComponents.time,
       payload: _payload('/home'),
     );
   }
 
   // ── 2. Streak-at-risk warning ─────────────────────────────────────────────
 
-  /// Schedule a streak-at-risk warning 60 minutes before [curfew].
-  ///
-  /// Call this:
-  ///   • On app startup if session NOT completed today.
-  ///   • When curfew time is changed.
-  ///
-  /// Cancel this (via [cancelStreakWarning]) when session IS completed.
   Future<void> scheduleStreakWarning({required TimeOfDay curfew}) async {
     await _plugin.cancel(NotificationService.idStreakWarning);
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // Fire 60 min before curfew.
-    final warningHour = curfew.hour;
-    final warningMinute = curfew.minute;
     var warningTime = _nextInstanceOf(
       now,
-      warningHour,
-      warningMinute,
+      curfew.hour,
+      curfew.minute,
     ).subtract(const Duration(hours: 1));
 
-    // If already past this time today, skip — no point showing a warning
-    // after the curfew has passed for today.
     if (warningTime.isBefore(now)) return;
 
     final curfewLabel =
@@ -140,9 +112,9 @@ class NotificationScheduler {
           interruptionLevel: InterruptionLevel.timeSensitive,
         ),
       ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: _payload('/session'),
     );
   }
@@ -152,10 +124,6 @@ class NotificationScheduler {
 
   // ── 3. Drip nudge ─────────────────────────────────────────────────────────
 
-  /// Schedule a one-off drip nudge [daysFromNow] days from now at 10:00.
-  ///
-  /// Call this after a drip injection if batchCount < threshold.
-  /// Pass daysFromNow = 3 for the default "batch getting thin" nudge.
   Future<void> scheduleDripNudge({int daysFromNow = 3}) async {
     await _plugin.cancel(NotificationService.idDripNudge);
 
@@ -183,9 +151,9 @@ class NotificationScheduler {
         ),
         iOS: const DarwinNotificationDetails(),
       ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: _payload('/home'),
     );
   }

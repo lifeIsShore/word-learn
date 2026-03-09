@@ -16,15 +16,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Usage:
 ///   final isOnline = ref.watch(connectivityProvider);
 class ConnectivityNotifier extends Notifier<bool> {
-  static const _pollInterval = Duration(seconds: 15);
-  static const kProbeTarget = ('1.1.1.1', 80);
-  static const _timeout = Duration(seconds: 5);
+  static const Duration _pollInterval = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 5);
+
+  // Probe target as separate constants to avoid record static-const lint noise.
+  static const String _probeHost = '1.1.1.1';
+  static const int _probePort = 80;
 
   Timer? _timer;
 
   @override
   bool build() {
-    // Start polling immediately.
     _startPolling();
     ref.onDispose(_stopPolling);
     return true; // Optimistic initial state — updated on first probe.
@@ -41,16 +43,15 @@ class ConnectivityNotifier extends Notifier<bool> {
   }
 
   Future<void> _check() async {
-    final online = await _probe();
-    // Only trigger a rebuild if the value has changed.
+    final online = await _doProbe();
     if (online != state) state = online;
   }
 
-  Future<bool> _probe() async {
+  Future<bool> _doProbe() async {
     try {
       final sock = await Socket.connect(
-        kProbeTarget.$1,
-        kProbeTarget.$2,
+        _probeHost,
+        _probePort,
         timeout: _timeout,
       );
       sock.destroy();

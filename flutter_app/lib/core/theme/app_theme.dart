@@ -51,7 +51,8 @@ abstract class AppTheme {
           elevation: 0,
           minimumSize: const Size(double.infinity, AppSpacing.buttonHeight),
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(AppSpacing.borderRadius)),
+            borderRadius:
+                BorderRadius.all(Radius.circular(AppSpacing.borderRadius)),
           ),
           textStyle: AppTextStyles.labelLarge,
         ),
@@ -64,9 +65,11 @@ abstract class AppTheme {
           side: const BorderSide(color: AppColors.primaryTeal, width: 1.5),
           minimumSize: const Size(double.infinity, AppSpacing.buttonHeight),
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(AppSpacing.borderRadius)),
+            borderRadius:
+                BorderRadius.all(Radius.circular(AppSpacing.borderRadius)),
           ),
-          textStyle: AppTextStyles.labelLarge.copyWith(color: AppColors.primaryTeal),
+          textStyle:
+              AppTextStyles.labelLarge.copyWith(color: AppColors.primaryTeal),
         ),
       ),
 
@@ -109,13 +112,15 @@ abstract class AppTheme {
           borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
-        labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
-        hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+        labelStyle:
+            AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+        hintStyle:
+            AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
         errorStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
       ),
 
       // Card
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -142,6 +147,8 @@ abstract class AppTheme {
         bodySmall: AppTextStyles.bodySmall,
         labelLarge: AppTextStyles.labelLarge,
         labelMedium: AppTextStyles.labelMedium,
+        labelSmall: AppTextStyles
+            .bodySmall, // Adding labelSmall to avoid deprecation issues
       ),
     );
   }
@@ -160,7 +167,6 @@ abstract class AppTheme {
         onSurface: AppColors.navyText,
         onError: AppColors.white,
       ),
-
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.deepNavy,
         foregroundColor: AppColors.navyText,
@@ -175,7 +181,6 @@ abstract class AppTheme {
         ),
         iconTheme: IconThemeData(color: AppColors.navyText, size: 24),
       ),
-
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryTeal,
@@ -183,13 +188,13 @@ abstract class AppTheme {
           elevation: 0,
           minimumSize: const Size(double.infinity, AppSpacing.buttonHeight),
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(AppSpacing.borderRadius)),
+            borderRadius:
+                BorderRadius.all(Radius.circular(AppSpacing.borderRadius)),
           ),
           textStyle: AppTextStyles.labelLarge,
         ),
       ),
-
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.navySecondary,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -198,7 +203,6 @@ abstract class AppTheme {
         ),
         margin: EdgeInsets.zero,
       ),
-
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.navySecondary,
@@ -222,22 +226,25 @@ abstract class AppTheme {
           borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
-        labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.navyTextSecondary),
-        hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.navyTextSecondary),
+        labelStyle: AppTextStyles.bodyMedium
+            .copyWith(color: AppColors.navyTextSecondary),
+        hintStyle: AppTextStyles.bodyMedium
+            .copyWith(color: AppColors.navyTextSecondary),
       ),
-
       dividerTheme: const DividerThemeData(
         color: AppColors.navyBorder,
         thickness: 1,
         space: 1,
       ),
-
       textTheme: TextTheme(
         displayLarge: AppTextStyles.displayLargeDark,
-        displayMedium: AppTextStyles.displayMedium.copyWith(color: AppColors.navyText),
+        displayMedium: AppTextStyles.displayMediumDark,
+        displaySmall: AppTextStyles.displaySmallDark,
         bodyLarge: AppTextStyles.bodyLargeDark,
         bodyMedium: AppTextStyles.bodyMediumDark,
-        bodySmall: AppTextStyles.bodySmall.copyWith(color: AppColors.navyTextSecondary),
+        bodySmall: AppTextStyles.bodySmallDark,
+        labelSmall: AppTextStyles
+            .bodySmallDark, // Adding labelSmall to avoid deprecation issues
       ),
     );
   }

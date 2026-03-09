@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -44,7 +43,8 @@ class OnboardingNotifier extends _$OnboardingNotifier {
   }
 
   void setCefrLevel(String languageCode, String level) {
-    final levels = Map<String, String>.from(state.cefrLevels)..[languageCode] = level;
+    final levels = Map<String, String>.from(state.cefrLevels)
+      ..[languageCode] = level;
     state = state.copyWith(cefrLevels: levels);
   }
 

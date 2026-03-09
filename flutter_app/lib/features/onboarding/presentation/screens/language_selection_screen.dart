@@ -67,7 +67,7 @@ class LanguageSelectionScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Progress bar
-                  const _OnboardingProgressBar(step: 1),
+                  const OnboardingProgressBar(step: 1),
                   const SizedBox(height: AppSpacing.xl),
 
                   const Text(
@@ -242,8 +242,8 @@ class _LanguageTile extends StatelessWidget {
   }
 }
 
-class _OnboardingProgressBar extends StatelessWidget {
-  const _OnboardingProgressBar({required this.step});
+class OnboardingProgressBar extends StatelessWidget {
+  const OnboardingProgressBar({super.key, required this.step});
   final int step; // 1–4
 
   @override

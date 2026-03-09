@@ -73,7 +73,7 @@ class _CurfewSetupScreenState extends ConsumerState<CurfewSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _OnboardingProgressBar(step: 2),
+              const OnboardingProgressBar(step: 2),
               const SizedBox(height: AppSpacing.xl),
 
               const Text('Set your\nCurfew.',
@@ -135,7 +135,8 @@ class _CurfewSetupScreenState extends ConsumerState<CurfewSetupScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.warningLight,
                   borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                  border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

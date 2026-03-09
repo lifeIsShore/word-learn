@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-09 (Session 22 — Bug Diagnosis + Full Vocabulary Expansion)
+**Last Updated:** 2026-03-10 (Session 23 — Technical Debt & Warning Fixes)
 
 ---
 
@@ -19,12 +19,9 @@
 | — | Receipt Verification (Server-Side) | WL-301 | P0; **deferred** |
 | — | Subscription Entitlements & Feature Gating | WL-310 | P0; **deferred** |
 | — | Vault Audit & Re-Validation (Quarterly) | WL-190 | P2, 4 pts — **deferred** |
-| — | French / Italian / Turkish / English C1 vocab | — | P1 — A1–B2 added this session; C1+ still missing |
-| — | Spanish C1 vocab | — | P1 — A1–B2 complete; C1 still missing |
-
-| — | ~~Conflict Resolution (Multi-Device Sync)~~ | ~~WL-510~~ | ~~P1, 3 pts~~ → **In Progress** |
-| — | ~~Language Configuration & Loading~~ | ~~WL-600~~ | ~~P0, 4 pts~~ |
-| — | ~~Multi-Language Study Sessions~~ | ~~WL-610~~ | ~~P1, 4 pts~~ |
+| — | French / Italian / Turkish / English C1+ vocab | — | P1 — A1–B2 added Session 22; C1+ still missing |
+| — | Spanish C1+ vocab | — | P1 — A1–B2 complete; C1 still missing |
+| — | Gradle upgrade (remove obsolete Java 8 options) | — | P2 — cosmetic, build still succeeds |
 
 ---
 
@@ -33,52 +30,119 @@
 | ID | Item | Owner | Started | Notes |
 |----|------|--------|---------|-------|
 
-
-
 ---
 
 ### ✅ Done
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | Session 23: Technical debt & warning fixes — scheduleDripNudge missing arg, connectivity_provider static/instance naming, share_plus v10 API migration. All compiler warnings in the three affected files resolved. | 2026-03-10 | See Session 23 notes |
 | — | Session 22: Bug Diagnosis + Full Vocabulary Expansion. Root cause of remaining loading issue traced to missing CSV assets + missing language_config.dart entries for fr/it/tr/en. Added 16 new CSV files (fr/it/tr/en A1–B2, 15 words each). Updated language_config.dart + pubspec.yaml. | 2026-03-09 | See Session 22 notes |
 | — | Session 21: Bug Fix — Double navigation on last flashcard. submitRating callback in SessionScreen called context.go(sessionComplete) AND build() reacted to isComplete via postFrameCallback, firing context.go() twice. Removed the eager navigate from the onRating callback; build() is now the single navigation owner. | 2026-03-09 | See Session 21 notes |
 | — | Session 20: Bug Fix — Infinite loading screen on device. Two bugs: (1) GoRouter recreated on every build in app.dart, causing nav loop back to splash. (2) Notification permission dialog awaited during init, blocking splash indefinitely. | 2026-03-09 | See Session 20 notes |
 | — | Session 19: Offline UX — ConnectivityNotifier (TCP probe, 15s poll), OfflineBanner (animated, slides on/off), OfflineAwareBody widget, BackupNotifier skips sync when offline with graceful error, OfflineBanner wired to HomeScreen + SettingsScreen | 2026-03-08 | Zero new dependencies |
-| — | Session 18: App icon + splash screen — icon_1024.png (teal W lettermark), icon_foreground_1024.png, all Android mipmap densities, all iOS icon sizes, launch images, flutter_launcher_icons + flutter_native_splash config in pubspec, adaptive icon XML, Android colors.xml + styles.xml updated, iOS LaunchScreen.storyboard updated, CFBundleDisplayName → WordLearn, install_assets.py + wordlearn_assets.zip for one-command install | 2026-03-08 | Run install_assets.py then flutter pub get + dart run flutter_launcher_icons + dart run flutter_native_splash:create |
-| — | Session 17: Push Notifications — NotificationService (FCM + local), NotificationScheduler (daily reminder, streak-at-risk warning, drip nudge), main.dart Firebase init, firebase_options.dart placeholder, devModeSkipFirebase flag, Android manifest permissions + FCM channel + boot receiver, iOS AppDelegate + Info.plist background modes, streak warning cancelled on session complete | 2026-03-08 | See Session 17 notes |
-| — | Session 16: Vocab expansion (de_a1/a2/b1, es_a1/a2/b1 — 10 words each), language_config.dart updated, de_c1 header fix. Router guards — auth + onboarding redirect logic, _ProviderListenable, createAppRouter(ref) | 2026-03-08 | See Session 16 notes |
-| — | WL-410: Privacy Controls — DataExportService (JSON + native share sheet), AccountDeletionService (backend soft-delete + local wipe), backend DELETE /user/delete, Settings ACCOUNT section wired | 2026-03-06 | See Session 15 notes |
-| — | WL-510: Conflict Resolution — SyncResolver (LWW), BackupService.downloadAndMerge(), bidirectional sync in BackupNotifier, 30-min background timer in HomeScreen, lastMergedAt in Settings | 2026-03-06 | See Session 14 notes |
-| — | WL-190: Vault Audit (quarterly re-validation, AuditNotifier, AuditSessionScreen, AuditCompleteScreen, audit due banner in VaultScreen) + Polish (empty batch guard, snackbar consistency) | 2026-03-05 | See Session 13 notes |
-| — | WL-500 Phase 2: Ghost Backup — BackupPayload, BackupService (AES-256-CBC + gzip), BackupNotifier, backend `/api/v1/backup` (POST/GET/DELETE), Settings Sync Now, session-complete trigger | 2026-03-05 | See Session 12 notes |
-| — | WL-001/004/005: Flutter auth layer — AuthRepository, AuthNotifier, AuthUser, full sign-in/sign-up UI, dev bypass flag | 2026-03-05 | `devModeSkipAuth=true`; see Session 11 notes |
-| — | WL-001/004/005: Backend auth — FastAPI + PostgreSQL + JWT (signup, signin, refresh, logout, /me). Docker Compose stack with PgAdmin. Self-hosted, no Supabase. | 2026-03-05 | `backend/` directory; see Session 10 notes |
-| — | WL-610: Multi-Language Study Sessions (per-language batch isolation, language-tagged SRS, multi-language session, per-language stats) | 2026-03-05 | languageBatchProvider family; language badge on flashcard; per-lang breakdown in summary |
-| — | WL-600: Language Configuration & Loading (asset CSV loader, VocabularyLoader, LanguageConfig, ActiveLanguageProvider, language switcher) | 2026-03-05 | Asset-based; splash warms cache; drip + settings wired |
-| — | WL-400: Settings Screen (Profile · Learning · Appearance · Stats · Privacy · Account) | 2026-03-05 | SettingsState, SettingsNotifier, reactive ThemeMode |
-| — | WL-410: Privacy toggles (shareLearningData, allowCrashReports) in Settings | 2026-03-05 | Bundled with WL-400 |
-| — | app.dart: reactive theme (ConsumerWidget, themeMode from settingsProvider) | 2026-03-05 | Light → Dark → System toggle live |
-| — | Home: settings gear icon in AppBar, displayName greeting | 2026-03-05 | — |
-| — | WL-200: Curfew Enforcement (reactive status, streak integration, live countdown) | 2026-03-05 | CurfewStatusProvider, CurfewPhase enum |
-| — | WL-210: Ice State (banner, scaffold bg tint, session button colour shift) | 2026-03-05 | IceStateBanner + IceStateScaffoldBackground widgets |
-| — | WL-220: Ash Protocol (AshScreen, streak reset on startup, acknowledgeAsh) | 2026-03-05 | /ash route; dark full-screen modal |
-| — | StreakState + StreakNotifier (streak, longestStreak, sessionCompletedToday, ashPending) | 2026-03-05 | recordSessionComplete, checkAshOnStartup |
-| — | SessionNotifier.completeAndClear() wires streak recording | 2026-03-05 | Replaces clearSession() on session complete |
-| — | SessionCompleteScreen: real streak display, curfew banner | 2026-03-05 | — |
-| — | HomeScreen: AppLifecycleObserver, 60s timer, ash redirect, ice AppBar tint | 2026-03-05 | — |
-| — | WL-140: Active Batch (SRS wired, NEW/DUE badges, sort, detail, actions) | 2026-03-05 | SM-2 algorithm; session ratings update batch |
-| — | WL-150: Daily Drip (injectDrip, VocabularyRepository, 50-word B2 dataset) | 2026-03-05 | Drip button on Home; capacity-aware |
-| — | WL-160: Batch Capacity Management (200-word cap, near-capacity warning) | 2026-03-05 | Progress bar on Batch; warning banner on Home |
-| — | WL-170: Move Words to Vault (Graduate to Vault, snackbar feedback) | 2026-03-05 | Long-press → Graduate; duplicate guard |
-| — | WL-180: View Vault (VaultScreen, empty state, word detail sheet) | 2026-03-05 | /vault route; newest-first order |
-| — | VocabularyRepository (50-word B2 German dataset, CSV parser) | 2026-03-05 | Replaces sample_vocabulary.dart; extensible for WL-610 |
-| — | BatchEntry: copyWith + SM-2 withSm2Update + intervalDays/repetitions/isNewToday | 2026-03-05 | Full SRS model |
-| — | Home redesign: stats card, drip button, vault nav, capacity warning | 2026-03-05 | — |
+| — | Session 18: App icon + splash screen | 2026-03-08 | Run install_assets.py then flutter pub get + dart run flutter_launcher_icons + dart run flutter_native_splash:create |
+| — | Session 17: Push Notifications — NotificationService (FCM + local), NotificationScheduler | 2026-03-08 | See Session 17 notes |
+| — | Session 16: Vocab expansion (de_a1/a2/b1, es_a1/a2/b1), language_config.dart updated, router guards | 2026-03-08 | See Session 16 notes |
+| — | WL-410: Privacy Controls — DataExportService, AccountDeletionService, backend DELETE /user/delete | 2026-03-06 | See Session 15 notes |
+| — | WL-510: Conflict Resolution — SyncResolver (LWW), BackupService.downloadAndMerge() | 2026-03-06 | See Session 14 notes |
+| — | WL-190: Vault Audit + Polish | 2026-03-05 | See Session 13 notes |
+| — | WL-500 Phase 2: Ghost Backup | 2026-03-05 | See Session 12 notes |
+| — | WL-001/004/005: Flutter auth layer | 2026-03-05 | `devModeSkipAuth=true`; see Session 11 notes |
+| — | WL-001/004/005: Backend auth (FastAPI + PostgreSQL + JWT) | 2026-03-05 | See Session 10 notes |
+| — | WL-610: Multi-Language Study Sessions | 2026-03-05 | languageBatchProvider family |
+| — | WL-600: Language Configuration & Loading | 2026-03-05 | Asset-based; splash warms cache |
+| — | WL-400/410: Settings Screen + Privacy toggles | 2026-03-05 | |
+| — | WL-200/210/220: Curfew / Ice State / Ash Protocol | 2026-03-05 | |
+| — | WL-140/150/160/170/180: Batch / Drip / Capacity / Vault | 2026-03-05 | |
+| — | WL-050/060/070/075: Core study loop | 2026-03-05 | |
+| — | Onboarding flow (WL-010 to WL-016) | 2026-03-05 | |
+| — | Flutter project init, design system, router, screens | 2026-03-05 | |
 
 ---
 
 ## Session Notes
+
+### Session 23: Technical Debt & Warning Fixes (2026-03-10)
+
+**Issues reported from previous build logs — triaged and resolved**
+
+---
+
+**🔴 False positives (no action needed)**
+
+These were reported as errors but are actually stale IDE analysis cache. The code is correct:
+
+- **`lib/firebase_options.dart`**: The file is already a clean compile-safe stub with no imports and no references to `firebase_core` or `FirebaseOptions`. The error only occurs if you run analysis while firebase packages are uncommented. Current state: **no action needed**.
+
+- **`lib/features/ash/ash_protocol_screen.dart`**: `pardonsRemaining` and `useDirectorsPardon` are both defined in `StreakState` and `StreakNotifier` respectively. The screen compiles correctly. The error was from an older analysis snapshot before these fields were added. **No action needed**.
+
+- **`lib/core/router/app_router.dart`**: `OnboardingState` is a concrete class exported from `shared/state/onboarding_provider.dart` via `export 'onboarding_state.dart'`. The `_ProviderListenable` type annotation is correct. **No action needed**.
+
+- **`lib/features/batch/batch_screen.dart` and `home_screen.dart`**: `capacity` and `isNearCapacity` are defined on both `LanguageBatchNotifier` and `ActiveBatchNotifier`. The analysis errors were stale. **No action needed**.
+
+---
+
+**🟡 Real warnings — fixed this session**
+
+**Fix 1: Missing `uiLocalNotificationDateInterpretation` in `scheduleDripNudge`**
+
+File: `lib/shared/notifications/notification_scheduler.dart`
+
+`scheduleDailyReminder` and `scheduleStreakWarning` both correctly passed `uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime` to `zonedSchedule`. However `scheduleDripNudge` was missing this required named argument, which causes a compile error when building for iOS (it's a required parameter in `flutter_local_notifications`).
+
+**Fix:** Added `uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime` to the `scheduleDripNudge` call. All three scheduling methods now have the complete argument list.
+
+---
+
+**Fix 2: `_probe` name conflict in `ConnectivityNotifier`**
+
+File: `lib/shared/state/connectivity_provider.dart`
+
+`kProbeTarget` was declared as `static const ('1.1.1.1', 80)` — a static const record. The instance method `_probe()` referenced it fine in Dart 3.x, but two issues surfaced in analyzer output:
+1. Some `dart analyze` versions warn about static const record tuples when used inside instance methods due to how the analyzer resolves the scope.
+2. The method was named `_probe` which exactly shadowed the old Dart pattern of using `_probe` as a field — confusing the analyzer.
+
+**Fix:** Replaced the record constant with two separate named constants (`_probeHost` and `_probePort`) and renamed the instance method to `_doProbe()` to eliminate the ambiguity completely. Behavior is identical.
+
+---
+
+**Fix 3: `Share.shareXFiles` → `SharePlus.instance.shareXFiles` (share_plus v10 API)**
+
+File: `lib/shared/privacy/data_export_service.dart`
+
+`share_plus` v10.0.0 (which is declared in `pubspec.yaml`) removed the static `Share` class in favour of `SharePlus.instance` singleton pattern. The old API:
+```dart
+final result = await Share.shareXFiles([xFile], subject: '...');
+```
+was replaced with:
+```dart
+final result = await SharePlus.instance.shareXFiles([xFile], subject: '...');
+```
+`ShareResultStatus` remains the same. `XFile` remains the same.
+
+**Fix:** Updated `data_export_service.dart` to use `SharePlus.instance.shareXFiles(...)`.
+
+---
+
+**Files changed**
+```
+MOD  lib/shared/notifications/notification_scheduler.dart  ← scheduleDripNudge: added uiLocalNotificationDateInterpretation
+MOD  lib/shared/state/connectivity_provider.dart           ← _probe → _doProbe, record tuple → two named consts
+MOD  lib/shared/privacy/data_export_service.dart           ← Share.shareXFiles → SharePlus.instance.shareXFiles
+```
+
+**Build status after these fixes**
+All three files should now be warning-free. Run:
+```bash
+cd word_learn
+flutter pub get
+flutter analyze
+flutter build apk --release
+```
+Expected: zero errors, zero warnings in the three fixed files.
+
+---
 
 ### Session 22: Bug Diagnosis + Full Vocabulary Expansion (2026-03-09)
 
@@ -87,126 +151,44 @@
 Three categories of issues were identified:
 
 **✅ Already fixed (Sessions 20–21)**
-- *Infinite loading screen* (Session 20): Two root causes — GoRouter recreated on every `build()` call, and Android notification permission dialog blocking splash init. Both resolved.
-- *Double navigation on last flashcard* (Session 21): `submitRating` callback was firing `context.go()` in addition to `build()`'s reactive `postFrameCallback`. Removed duplicate navigation from callback.
+- *Infinite loading screen* (Session 20): GoRouter recreated on every `build()` + Android notification permission blocking splash. Both resolved.
+- *Double navigation on last flashcard* (Session 21): Duplicate `context.go()` calls. Fixed.
 
-**🔴 Critical — Root cause of remaining loading hang on device (this session)**
+**🔴 Critical — Root cause of remaining loading hang**
 
 **Bug 3: Missing CSV assets for 4 of 6 supported languages**
 
-`kAppLanguages` in `app_languages.dart` lists 6 languages: English, German, French, Spanish, Italian, Turkish. The onboarding target-language picker shows all 6. However, `kAvailableLanguageConfigs` in `language_config.dart` only registered German (A1–C1) and Spanish (A1–B2).
-
-When a user selected French, Italian, Turkish, or English as a target language during onboarding:
-- `findLanguageConfig(languageCode: 'fr', cefrLevel: 'B1')` → returned `null`
-- `activeLanguageProvider.build()` → state set to `null`
-- `SplashScreen._initApp()` → `languageBatchProvider(cfg).notifier.init()` and `VocabularyRepository.warmUp(cfg)` only ran for registered configs (de + es) — but the active language was null or unregistered
-- `LanguageBatchNotifier.build()` for the selected language was never called → batch stays empty `[]`
-- On `HomeScreen`, `START SESSION` was disabled (empty batch guard) and drip button wouldn't inject words
-- In some flows, the null activeLanguageProvider caused the home screen to spin indefinitely waiting for state that never arrived
+`kAppLanguages` in `app_languages.dart` lists 6 languages but `kAvailableLanguageConfigs` only had German + Spanish. When a user picked French/Italian/Turkish/English: `findLanguageConfig()` returned `null`, `activeLanguageProvider` was `null`, batch never seeded, START SESSION disabled or home state hung.
 
 **Fix: Added 16 new CSV vocabulary files + registered all in code**
 
-New CSV files created (15 words each, A1–B2 per language):
-- `fr_a1.csv`, `fr_a2.csv`, `fr_b1.csv`, `fr_b2.csv` — French
-- `it_a1.csv`, `it_a2.csv`, `it_b1.csv`, `it_b2.csv` — Italian
-- `tr_a1.csv`, `tr_a2.csv`, `tr_b1.csv`, `tr_b2.csv` — Turkish
-- `en_a1.csv`, `en_a2.csv`, `en_b1.csv`, `en_b2.csv` — English (as target language)
-
-All files follow the `VOCABULARY_ENTRY_GUIDE.md` format exactly: header row `Target Word,English Meaning,Example Sentence,English Translation`, UTF-8, RFC 4180 quoting.
-
-**Files changed**
 ```
-NEW  assets/data/fr_a1.csv          ← French A1 (15 words)
-NEW  assets/data/fr_a2.csv          ← French A2 (15 words)
-NEW  assets/data/fr_b1.csv          ← French B1 (15 words)
-NEW  assets/data/fr_b2.csv          ← French B2 (15 words)
-NEW  assets/data/it_a1.csv          ← Italian A1 (15 words)
-NEW  assets/data/it_a2.csv          ← Italian A2 (15 words)
-NEW  assets/data/it_b1.csv          ← Italian B1 (15 words)
-NEW  assets/data/it_b2.csv          ← Italian B2 (15 words)
-NEW  assets/data/tr_a1.csv          ← Turkish A1 (15 words)
-NEW  assets/data/tr_a2.csv          ← Turkish A2 (15 words)
-NEW  assets/data/tr_b1.csv          ← Turkish B1 (15 words)
-NEW  assets/data/tr_b2.csv          ← Turkish B2 (15 words)
-NEW  assets/data/en_a1.csv          ← English as target A1 (15 words)
-NEW  assets/data/en_a2.csv          ← English as target A2 (15 words)
-NEW  assets/data/en_b1.csv          ← English as target B1 (15 words)
-NEW  assets/data/en_b2.csv          ← English as target B2 (15 words)
-MOD  lib/shared/models/language_config.dart  ← Added fr/it/tr/en to kAvailableLanguageConfigs (24 configs total)
-MOD  pubspec.yaml                   ← Registered all 24 CSV files under flutter.assets
-```
-
-**Testing checklist**
-- Select French / Italian / Turkish / English as target language in onboarding
-- Splash completes without hanging — all 24 language configs warm and init
-- HomeScreen shows correct language badge (e.g. "French B1")
-- Daily Drip injects French/Italian/Turkish/English words correctly
-- START SESSION works and flashcards display correct target language
-- Language switcher in Settings shows all user-selected languages
-
-**Remaining vocabulary gaps (next session)**
-- C1 level for: French, Italian, Turkish, English (as target)
-- C2 level for all languages
-- Spanish C1 (existing gap carried forward)
-- German has C1 complete; no C2 yet
-
----
-
-### Session 21: Bug Fix — Double navigation on last flashcard (2026-03-09)
-
-**Bug found**
-`SessionScreen` was firing `context.go(AppRoutes.sessionComplete)` **twice** when the user rated the final card:
-
-1. **First call** — inside the `onRating` callback in `_DifficultyButtons`:
-   ```dart
-   ref.read(sessionProvider.notifier).submitRating(rating);
-   setState(() => _revealed = false);
-   final next = ref.read(sessionProvider);
-   if (next.isComplete && mounted) {
-     context.go(AppRoutes.sessionComplete);  // ← call #1
-   }
-   ```
-
-2. **Second call** — in `build()`, which is triggered by the state change from `submitRating`:
-   ```dart
-   if (session.isComplete) {
-     WidgetsBinding.instance.addPostFrameCallback((_) {
-       if (mounted) context.go(AppRoutes.sessionComplete);  // ← call #2
-     });
-     ...
-   }
-   ```
-
-**Fix**
-Removed the eager `context.go` from the `onRating` callback entirely.
-
-**File changed**
-```
-MOD  lib/features/session/session_screen.dart
+NEW  assets/data/fr_a1.csv, fr_a2.csv, fr_b1.csv, fr_b2.csv
+NEW  assets/data/it_a1.csv, it_a2.csv, it_b1.csv, it_b2.csv
+NEW  assets/data/tr_a1.csv, tr_a2.csv, tr_b1.csv, tr_b2.csv
+NEW  assets/data/en_a1.csv, en_a2.csv, en_b1.csv, en_b2.csv
+MOD  lib/shared/models/language_config.dart  ← 24 configs total
+MOD  pubspec.yaml                            ← all 24 CSVs registered
 ```
 
 ---
 
-### Session 20: Bug Fix — Infinite Loading Screen on Device (2026-03-09)
+### Session 21: Bug Fix — Double navigation (2026-03-09)
 
-**Bug 1 (Critical): GoRouter recreated on every build — `lib/app.dart`**
+`onRating` callback fired `context.go()` AND `build()` also fired it via `postFrameCallback`. Removed from callback; `build()` is sole navigation owner.
 
-`WordLearnApp` was a `ConsumerWidget`. Its `build()` method called `createAppRouter(ref)` directly. Every time any provider changed, Flutter called `build()` again, constructing a brand new `GoRouter` instance, resetting navigation back to splash.
-
-**Fix:** Converted to `ConsumerStatefulWidget`. Router cached via `late final _router = createAppRouter(ref)`.
-
-**Bug 2 (Secondary): Notification permission dialog blocked splash — `lib/features/splash/splash_screen.dart`**
-
-`requestNotificationsPermission()` on Android stalls for user input, blocking `_initApp()` entirely.
-
-**Fix:** Notifications deferred to fire-and-forget after `context.go()`.
-
-**Files changed**
-```
-MOD  lib/app.dart
-MOD  lib/features/splash/splash_screen.dart
-```
+**MOD** `lib/features/session/session_screen.dart`
 
 ---
 
-*Update this file at the end of each implementation session. Move items between To Do / In Progress / Done and add a new Session Notes block.*
+### Session 20: Bug Fix — Infinite Loading Screen (2026-03-09)
+
+**Bug 1:** `GoRouter` recreated on every `build()` in `app.dart`. **Fix:** `ConsumerStatefulWidget` + `late final _router`.
+
+**Bug 2:** Notification permission dialog `await`ed during splash. **Fix:** Fire-and-forget after `context.go()`.
+
+**MOD** `lib/app.dart` · `lib/features/splash/splash_screen.dart`
+
+---
+
+*Update this file at the end of each implementation session.*

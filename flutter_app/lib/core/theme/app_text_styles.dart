@@ -108,4 +108,13 @@ abstract class AppTextStyles {
 
   static TextStyle get bodyMediumDark =>
       bodyMedium.copyWith(color: AppColors.navyText);
+
+  static TextStyle get bodySmallDark =>
+      bodySmall.copyWith(color: AppColors.navyTextSecondary);
+
+  static TextStyle get displayMediumDark =>
+      displayMedium.copyWith(color: AppColors.navyText);
+
+  static TextStyle get displaySmallDark =>
+      displaySmall.copyWith(color: AppColors.navyText);
 }

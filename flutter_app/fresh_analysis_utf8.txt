@@ -1,0 +1,16 @@
+﻿Analyzing ....
+
+  error - lib\core\theme\app_theme.dart:123:18 - The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.  - argument_type_not_assignable
+  error - lib\core\theme\app_theme.dart:195:18 - The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.  - argument_type_not_assignable
+  error - lib\features\onboarding\presentation\screens\curfew_setup_screen.dart:76:15 - The method '_OnboardingProgressBar' isn't defined for the type '_CurfewSetupScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_OnboardingProgressBar'. - undefined_method
+  error - lib\features\onboarding\presentation\screens\drip_setup_screen.dart:62:15 - The method '_OnboardingProgressBar' isn't defined for the type '_DripSetupScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_OnboardingProgressBar'. - undefined_method
+warning - lib\features\onboarding\presentation\screens\curfew_setup_screen.dart:11:8 - Unused import: 'language_selection_screen.dart'. Try removing the import directive. - unused_import
+warning - lib\features\onboarding\presentation\screens\drip_setup_screen.dart:12:8 - Unused import: 'language_selection_screen.dart'. Try removing the import directive. - unused_import
+   info - lib\core\router\app_router.dart:2:8 - The import of 'package:flutter_riverpod/flutter_riverpod.dart' is unnecessary because all of the used elements are also provided by the import of 'package:riverpod_annotation/riverpod_annotation.dart'. Try removing the import directive. - unnecessary_import
+   info - lib\features\auth\data\auth_repository.dart:1:8 - The import of 'package:flutter_riverpod/flutter_riverpod.dart' is unnecessary because all of the used elements are also provided by the import of 'package:riverpod_annotation/riverpod_annotation.dart'. Try removing the import directive. - unnecessary_import
+   info - lib\features\onboarding\presentation\screens\curfew_setup_screen.dart:138:63 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\onboarding\presentation\screens\drip_setup_screen.dart:124:55 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\onboarding\providers\onboarding_provider.dart:1:8 - The import of 'package:flutter_riverpod/flutter_riverpod.dart' is unnecessary because all of the used elements are also provided by the import of 'package:riverpod_annotation/riverpod_annotation.dart'. Try removing the import directive. - unnecessary_import
+   info - lib\shared\widgets\wl_text_field.dart:94:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+12 issues found.

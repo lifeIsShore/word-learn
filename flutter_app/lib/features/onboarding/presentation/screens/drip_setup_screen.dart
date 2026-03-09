@@ -59,7 +59,7 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _OnboardingProgressBar(step: 3),
+              const OnboardingProgressBar(step: 3),
               const SizedBox(height: AppSpacing.xl),
 
               const Text('Set your\ndaily drip.',
@@ -121,7 +121,7 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
                   activeTrackColor: AppColors.primaryTeal,
                   inactiveTrackColor: AppColors.lightGray,
                   thumbColor: AppColors.primaryTeal,
-                  overlayColor: AppColors.primaryTeal.withOpacity(0.15),
+                  overlayColor: AppColors.primaryTeal.withValues(alpha: 0.15),
                   thumbShape:
                       const RoundSliderThumbShape(enabledThumbRadius: 10),
                   trackHeight: 4,

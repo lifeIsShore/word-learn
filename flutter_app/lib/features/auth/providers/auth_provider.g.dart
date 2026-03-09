@@ -1,0 +1,46 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'auth_provider.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$authStateHash() => r'7ea44ac4b2009a4d36739f085abf5cc803b585d6';
+
+/// Exposes the current Supabase User (null = unauthenticated)
+///
+/// Copied from [authState].
+@ProviderFor(authState)
+final authStateProvider = AutoDisposeStreamProvider<User?>.internal(
+  authState,
+  name: r'authStateProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$authStateHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AuthStateRef = AutoDisposeStreamProviderRef<User?>;
+String _$supabaseAuthHash() => r'70e36edbe3b8597072e1efe2df869c5113847831';
+
+/// The raw Supabase auth client
+///
+/// Copied from [supabaseAuth].
+@ProviderFor(supabaseAuth)
+final supabaseAuthProvider = AutoDisposeProvider<GoTrueClient>.internal(
+  supabaseAuth,
+  name: r'supabaseAuthProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$supabaseAuthHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SupabaseAuthRef = AutoDisposeProviderRef<GoTrueClient>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
