@@ -89,7 +89,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Future<void> _signUp() async {
     if (!_validateInputs()) return;
     if (!_acceptedTerms) {
-      setState(() => _serverError = 'Please accept the Terms of Service to continue.');
+      setState(() =>
+          _serverError = 'Please accept the Terms of Service to continue.');
       return;
     }
 
@@ -107,14 +108,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     } on AuthException catch (e) {
       setState(() => _serverError = _mapAuthError(e.message));
     } catch (_) {
-      setState(() => _serverError = 'No internet connection. Check your network.');
+      setState(
+          () => _serverError = 'No internet connection. Check your network.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   String _mapAuthError(String message) {
-    if (message.contains('already registered') || message.contains('User already')) {
+    if (message.contains('already registered') ||
+        message.contains('User already')) {
       return 'Email already registered. Sign in instead?';
     }
     if (message.contains('Password should be')) {
@@ -137,18 +140,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.md),
 
               // Header
-              Text('Create your\naccount.', style: AppTextStyles.displayLarge),
+              const Text('Create your\naccount.',
+                  style: AppTextStyles.displayLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'By signing up, you confirm you are 13 or older.',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.mediumGray),
               ),
 
               const SizedBox(height: AppSpacing.xl),
@@ -278,7 +284,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 children: [
                   Text(
                     'Already have an account? ',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.mediumGray),
                   ),
                   GestureDetector(
                     onTap: () => context.go(AppRoutes.signIn),

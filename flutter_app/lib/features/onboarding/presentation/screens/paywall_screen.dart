@@ -38,17 +38,20 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.md),
 
-              Text('Unlock full\naccess.', style: AppTextStyles.displayLarge),
+              const Text('Unlock full\naccess.',
+                  style: AppTextStyles.displayLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'One subscription. All languages. No ads.',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.mediumGray),
               ),
 
               const SizedBox(height: AppSpacing.xl),
@@ -111,7 +114,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               Center(
                 child: Text(
                   'Cancel anytime. No ads. No data selling.',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray),
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.mediumGray),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -178,11 +182,13 @@ class _PlanToggle extends StatelessWidget {
                 ),
               ),
             Text(label,
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray)),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.mediumGray)),
             const SizedBox(height: 4),
             Text(price, style: AppTextStyles.displaySmall),
             Text(period,
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray)),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.mediumGray)),
           ],
         ),
       ),
@@ -210,13 +216,13 @@ class _FeatureTable extends StatelessWidget {
             Expanded(
                 flex: 3,
                 child: Text('FEATURE',
-                    style: AppTextStyles.labelMedium.copyWith(
-                        color: AppColors.mediumGray, fontSize: 10))),
+                    style: AppTextStyles.labelMedium
+                        .copyWith(color: AppColors.mediumGray, fontSize: 10))),
             Expanded(
                 flex: 2,
                 child: Text('SUBSCRIBER',
-                    style: AppTextStyles.labelMedium.copyWith(
-                        color: AppColors.primaryTeal, fontSize: 10),
+                    style: AppTextStyles.labelMedium
+                        .copyWith(color: AppColors.primaryTeal, fontSize: 10),
                     textAlign: TextAlign.center)),
             Expanded(
                 flex: 2,

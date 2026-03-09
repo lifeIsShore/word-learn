@@ -24,11 +24,16 @@ class LanguageOption {
 }
 
 const _allLanguages = [
-  LanguageOption(code: 'de', name: 'German', nameNative: 'Deutsch', flagEmoji: '🇩🇪'),
-  LanguageOption(code: 'fr', name: 'French', nameNative: 'Français', flagEmoji: '🇫🇷'),
-  LanguageOption(code: 'es', name: 'Spanish', nameNative: 'Español', flagEmoji: '🇪🇸'),
-  LanguageOption(code: 'it', name: 'Italian', nameNative: 'Italiano', flagEmoji: '🇮🇹'),
-  LanguageOption(code: 'tr', name: 'Turkish', nameNative: 'Türkçe', flagEmoji: '🇹🇷'),
+  LanguageOption(
+      code: 'de', name: 'German', nameNative: 'Deutsch', flagEmoji: '🇩🇪'),
+  LanguageOption(
+      code: 'fr', name: 'French', nameNative: 'Français', flagEmoji: '🇫🇷'),
+  LanguageOption(
+      code: 'es', name: 'Spanish', nameNative: 'Español', flagEmoji: '🇪🇸'),
+  LanguageOption(
+      code: 'it', name: 'Italian', nameNative: 'Italiano', flagEmoji: '🇮🇹'),
+  LanguageOption(
+      code: 'tr', name: 'Turkish', nameNative: 'Türkçe', flagEmoji: '🇹🇷'),
 ];
 
 const _cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -56,22 +61,24 @@ class LanguageSelectionScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Progress bar
-                  _OnboardingProgressBar(step: 1),
+                  const _OnboardingProgressBar(step: 1),
                   const SizedBox(height: AppSpacing.xl),
 
-                  Text(
+                  const Text(
                     'What are you\nlearning?',
                     style: AppTextStyles.displayLarge,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Select one or more target languages.\nYour base language is English.',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.mediumGray),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
@@ -86,7 +93,8 @@ class LanguageSelectionScreen extends ConsumerWidget {
                   vertical: AppSpacing.xs,
                 ),
                 itemCount: _allLanguages.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.sm),
                 itemBuilder: (context, index) {
                   final lang = _allLanguages[index];
                   final isSelected = state.targetLanguages.contains(lang.code);
@@ -97,7 +105,8 @@ class LanguageSelectionScreen extends ConsumerWidget {
                     isSelected: isSelected,
                     cefrLevel: cefrLevel,
                     onTap: () => notifier.toggleTargetLanguage(lang.code),
-                    onCefrChanged: (level) => notifier.setCefrLevel(lang.code, level),
+                    onCefrChanged: (level) =>
+                        notifier.setCefrLevel(lang.code, level),
                   );
                 },
               ),
@@ -107,9 +116,8 @@ class LanguageSelectionScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.screenPadding),
               child: WlPrimaryButton(
                 label: 'Continue',
-                onPressed: canProceed
-                    ? () => context.go(AppRoutes.curfewSetup)
-                    : null,
+                onPressed:
+                    canProceed ? () => context.go(AppRoutes.curfewSetup) : null,
               ),
             ),
           ],
@@ -170,7 +178,8 @@ class _LanguageTile extends StatelessWidget {
                   ),
                 ),
                 if (isSelected)
-                  const Icon(Icons.check_circle, color: AppColors.primaryTeal, size: 22)
+                  const Icon(Icons.check_circle,
+                      color: AppColors.primaryTeal, size: 22)
                 else
                   const Icon(Icons.radio_button_unchecked,
                       color: AppColors.borderGray, size: 22),

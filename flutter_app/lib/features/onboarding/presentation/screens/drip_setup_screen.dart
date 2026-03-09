@@ -32,7 +32,7 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
 
   String get _dripDescription {
     if (_drip <= 10) return '~${_drip * 2}–${_drip * 3} min/day';
-    if (_drip <= 20) return '~${_drip}–${_drip + 10} min/day';
+    if (_drip <= 20) return '~$_drip–${_drip + 10} min/day';
     if (_drip <= 30) return '~${_drip + 5}–${_drip + 20} min/day';
     return '~${_drip + 10}–${_drip + 30} min/day';
   }
@@ -54,18 +54,21 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _OnboardingProgressBar(step: 3),
               const SizedBox(height: AppSpacing.xl),
 
-              Text('Set your\ndaily drip.', style: AppTextStyles.displayLarge),
+              const Text('Set your\ndaily drip.',
+                  style: AppTextStyles.displayLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'New words added to your study set each day.',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.mediumGray),
               ),
 
               const Spacer(flex: 2),
@@ -119,14 +122,16 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
                   inactiveTrackColor: AppColors.lightGray,
                   thumbColor: AppColors.primaryTeal,
                   overlayColor: AppColors.primaryTeal.withOpacity(0.15),
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 10),
                   trackHeight: 4,
                 ),
                 child: Slider(
                   value: _sliderValue,
                   min: AppConstants.minDailyDrip.toDouble(),
                   max: AppConstants.maxDailyDrip.toDouble(),
-                  divisions: (AppConstants.maxDailyDrip - AppConstants.minDailyDrip),
+                  divisions:
+                      (AppConstants.maxDailyDrip - AppConstants.minDailyDrip),
                   onChanged: (val) => setState(() => _sliderValue = val),
                 ),
               ),
@@ -137,11 +142,13 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
                 children: [
                   Text(
                     '${AppConstants.minDailyDrip}',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.mediumGray),
                   ),
                   Text(
                     '${AppConstants.maxDailyDrip}',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.mediumGray),
                   ),
                 ],
               ),
@@ -151,7 +158,8 @@ class _DripSetupScreenState extends ConsumerState<DripSetupScreen> {
               // Info note
               Text(
                 'You can change this anytime in Settings.',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.mediumGray),
               ),
 
               const SizedBox(height: AppSpacing.lg),

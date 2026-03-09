@@ -27,7 +27,7 @@ class _CurfewSetupScreenState extends ConsumerState<CurfewSetupScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            timePickerTheme: TimePickerThemeData(
+            timePickerTheme: const TimePickerThemeData(
               backgroundColor: AppColors.white,
               hourMinuteColor: AppColors.lightTeal,
               hourMinuteTextColor: AppColors.primaryTeal,
@@ -68,18 +68,21 @@ class _CurfewSetupScreenState extends ConsumerState<CurfewSetupScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _OnboardingProgressBar(step: 2),
               const SizedBox(height: AppSpacing.xl),
 
-              Text('Set your\nCurfew.', style: AppTextStyles.displayLarge),
+              const Text('Set your\nCurfew.',
+                  style: AppTextStyles.displayLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Your daily deadline for completing a study session.',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.mediumGray),
               ),
 
               const Spacer(flex: 2),
@@ -97,8 +100,10 @@ class _CurfewSetupScreenState extends ConsumerState<CurfewSetupScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.lightTeal,
-                          borderRadius: BorderRadius.circular(AppSpacing.cardBorderRadius),
-                          border: Border.all(color: AppColors.primaryTeal, width: 2),
+                          borderRadius: BorderRadius.circular(
+                              AppSpacing.cardBorderRadius),
+                          border: Border.all(
+                              color: AppColors.primaryTeal, width: 2),
                         ),
                         child: Text(
                           _formatTime(_selectedTime),

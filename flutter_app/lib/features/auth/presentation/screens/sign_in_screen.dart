@@ -76,7 +76,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     } on AuthException catch (e) {
       setState(() => _serverError = _mapAuthError(e.message));
     } catch (_) {
-      setState(() => _serverError = 'No internet connection. Check your network.');
+      setState(
+          () => _serverError = 'No internet connection. Check your network.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -109,18 +110,21 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       backgroundColor: AppColors.paperWhite,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.xxxl),
 
               // Header
-              Text('Scholar,\nwelcome back.', style: AppTextStyles.displayLarge),
+              const Text('Scholar,\nwelcome back.',
+                  style: AppTextStyles.displayLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Sign in to continue your progress.',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.mediumGray),
               ),
 
               const SizedBox(height: AppSpacing.xxl),
@@ -186,10 +190,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 children: [
                   const Expanded(child: Divider()),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     child: Text(
                       'or',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.mediumGray),
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.mediumGray),
                     ),
                   ),
                   const Expanded(child: Divider()),
@@ -213,7 +219,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 children: [
                   Text(
                     "Don't have an account? ",
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mediumGray),
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.mediumGray),
                   ),
                   GestureDetector(
                     onTap: () => context.go(AppRoutes.signUp),
