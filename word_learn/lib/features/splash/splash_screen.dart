@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -97,11 +96,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       ),
     );
 
-    // 5. Initialise notifications (Session 17).
-    //    Skip if Firebase is not configured yet (devModeSkipFirebase = true).
-    if (!AppConfig.devModeSkipFirebase) {
-      await _initNotifications();
-    }
+    // 5. Initialise local notifications (Session 17).
+    //    Always initialise local notifications; FCM is guarded separately.
+    await _initNotifications();
   }
 
   /// Initialise NotificationService and schedule all WordLearn notifications
@@ -112,21 +109,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     await NotificationService.instance.init(
       onTap: (payload) {
-        // Notification tap routing — navigate to the route in the payload.
-        if (!mounted || payload == null) return;
-        try {
-          final data = Map<String, dynamic>.from(
-            // ignore: avoid_dynamic_calls
-            (payload.contains('{'))
-                ? (payload.isNotEmpty ? {} : {})
-                : {},
-          );
-          // Simple approach: navigate to /home for all taps.
-          // Extend this when deep-link routing is needed.
-          context.go(AppRoutes.home);
-        } catch (_) {
-          context.go(AppRoutes.home);
-        }
+        // Notification tap routing — navigate to /home for all taps.
+        // Extend this with json.decode(payload)['route'] when deep-link
+        // routing is needed.
+        if (!mounted) return;
+        context.go(AppRoutes.home);
       },
     );
 

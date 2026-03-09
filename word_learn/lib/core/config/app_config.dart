@@ -6,6 +6,7 @@
 ///
 ///  DEV_MODE_SKIP_AUTH = false → real auth flow. Set this before release.
 /// ─────────────────────────────────────────────────────────────────────────────
+library;
 
 class AppConfig {
   AppConfig._();
@@ -26,9 +27,9 @@ class AppConfig {
   //    For real device on same WiFi: http://192.168.x.x:8000/api/v1
 
   // ── Token storage keys ───────────────────────────────────────────────────
-  static const String kAccessTokenKey  = 'auth.access_token';
+  static const String kAccessTokenKey = 'auth.access_token';
   static const String kRefreshTokenKey = 'auth.refresh_token';
-  static const String kUserIdKey       = 'auth.user_id';
-  static const String kUserEmailKey    = 'auth.user_email';
-  static const String kDisplayNameKey  = 'auth.display_name';
+  static const String kUserIdKey = 'auth.user_id';
+  static const String kUserEmailKey = 'auth.user_email';
+  static const String kDisplayNameKey = 'auth.display_name';
 }

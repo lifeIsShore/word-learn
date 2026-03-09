@@ -1,0 +1,36 @@
+﻿Running Gradle task 'assembleRelease'...                        
+flutter : warning: 
+[options] source value 
+8 is obsolete and will 
+be removed in a future 
+release
+At line:1 char:1
++ flutter build apk 
+--release > 
+build_log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (warning: [opt   
+ io... future relea    
+se:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+warning: [options] 
+target value 8 is 
+obsolete and will be 
+removed in a future 
+release
+warning: [options] To 
+suppress warnings 
+about obsolete 
+options, use 
+-Xlint:-options.
+3 warnings
+Running Gradle task 'assembleRelease'...                          178.0s
+ΓêÜ Built build\app\outputs\flutter-apk\app-release.apk (55.0MB)

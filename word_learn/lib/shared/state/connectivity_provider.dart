@@ -17,7 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///   final isOnline = ref.watch(connectivityProvider);
 class ConnectivityNotifier extends Notifier<bool> {
   static const _pollInterval = Duration(seconds: 15);
-  static const _probe = ('1.1.1.1', 80);
+  static const kProbeTarget = ('1.1.1.1', 80);
   static const _timeout = Duration(seconds: 5);
 
   Timer? _timer;
@@ -49,8 +49,8 @@ class ConnectivityNotifier extends Notifier<bool> {
   Future<bool> _probe() async {
     try {
       final sock = await Socket.connect(
-        _probe.$1,
-        _probe.$2,
+        kProbeTarget.$1,
+        kProbeTarget.$2,
         timeout: _timeout,
       );
       sock.destroy();

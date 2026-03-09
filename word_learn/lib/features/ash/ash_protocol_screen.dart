@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/state/streak_provider.dart';
+import '../../shared/state/streak_state.dart';
 
 /// WL-220: Ash Protocol screen — shown once on app open when the user
 /// missed their Curfew the previous day. Hard streak reset. No escape.
@@ -155,14 +156,17 @@ class AshProtocolScreen extends ConsumerWidget {
         content: Text(
           'This will restore your previous streak. '
           'You have 1 pardon — once used it cannot be recovered.',
-          style: AppTypography.bodyMedium
-              .copyWith(color: Colors.white.withValues(alpha: 0.7)),
+          style: AppTypography.bodyMedium.copyWith(
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           TextButton(
             onPressed: () {

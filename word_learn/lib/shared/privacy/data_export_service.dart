@@ -59,20 +59,16 @@ class DataExportService {
         },
         'settings': safeSettings,
         'streak': streakRow,
-        'active_batch': {
-          'count': batchRows.length,
-          'entries': batchRows,
-        },
-        'vault': {
-          'count': vaultRows.length,
-          'entries': vaultRows,
-        },
+        'active_batch': {'count': batchRows.length, 'entries': batchRows},
+        'vault': {'count': vaultRows.length, 'entries': vaultRows},
       };
 
       // ── 3. Write to temp file ─────────────────────────────────────────────
       final dir = await getTemporaryDirectory();
-      final timestamp =
-          DateTime.now().toIso8601String().replaceAll(':', '-').substring(0, 19);
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .substring(0, 19);
       final file = File('${dir.path}/wordlearn_export_$timestamp.json');
 
       const encoder = JsonEncoder.withIndent('  ');
@@ -85,10 +81,9 @@ class DataExportService {
         name: 'wordlearn_export_$timestamp.json',
       );
 
-      final result = await SharePlus.shareXFiles(
-        [xFile],
-        subject: 'WordLearn — My Learning Data',
-      );
+      final result = await Share.shareXFiles([
+        xFile,
+      ], subject: 'WordLearn — My Learning Data');
 
       // ShareResultStatus.dismissed means the user cancelled — still a success
       // from our perspective (data was prepared; they just didn't pick a target).

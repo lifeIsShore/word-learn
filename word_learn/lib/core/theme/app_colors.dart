@@ -25,4 +25,8 @@ abstract final class AppColors {
   // Deep Navy (dark mode)
   static const Color deepNavy = Color(0xFF0D1B2A);
   static const Color navyText = Color(0xFFF0F0F0);
+
+  // Amber (for warnings/capacity)
+  static const Color softAmber = Color(0xFFFFF8E1);
+  static const Color deepAmber = Color(0xFFFFA000);
 }

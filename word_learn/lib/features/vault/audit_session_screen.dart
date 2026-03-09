@@ -18,8 +18,7 @@ class AuditSessionScreen extends ConsumerStatefulWidget {
   const AuditSessionScreen({super.key});
 
   @override
-  ConsumerState<AuditSessionScreen> createState() =>
-      _AuditSessionScreenState();
+  ConsumerState<AuditSessionScreen> createState() => _AuditSessionScreenState();
 }
 
 class _AuditSessionScreenState extends ConsumerState<AuditSessionScreen> {
@@ -33,10 +32,10 @@ class _AuditSessionScreenState extends ConsumerState<AuditSessionScreen> {
     // Redirect to complete screen when all cards rated.
     if (audit.isComplete) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
+        if (!context.mounted) return;
         await notifier.completeAudit();
-        if (!mounted) return;
-        context.go(AppRoutes.auditComplete);
+        if (!context.mounted) return;
+        GoRouter.of(context).go(AppRoutes.auditComplete);
       });
       return const Scaffold(
         backgroundColor: AppColors.paperWhite,
@@ -60,18 +59,16 @@ class _AuditSessionScreenState extends ConsumerState<AuditSessionScreen> {
             context.go(AppRoutes.vault);
           },
         ),
-        title: Text(
-          'Vault Audit',
-          style: AppTypography.labelLarge,
-        ),
+        title: Text('Vault Audit', style: AppTypography.labelLarge),
         actions: [
           Padding(
             padding: EdgeInsets.only(right: AppSpacing.md),
             child: Center(
               child: Text(
                 '${audit.currentIndex + 1} / ${audit.cards.length}',
-                style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.mediumGray),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.mediumGray,
+                ),
               ),
             ),
           ),
@@ -168,9 +165,7 @@ class _AuditSessionScreenState extends ConsumerState<AuditSessionScreen> {
                     // ── Verdict buttons ────────────────────────────────
                     _VerdictButtons(
                       onTap: (rating) {
-                        ref
-                            .read(auditProvider.notifier)
-                            .submitVerdict(rating);
+                        ref.read(auditProvider.notifier).submitVerdict(rating);
                         setState(() => _revealed = false);
                       },
                     ),

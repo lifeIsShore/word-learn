@@ -1,0 +1,34 @@
+﻿Analyzing word_learn...                                         
+
+  error - The name 'OnboardingState' isn't a type, so it can't be used as a type argument - lib\core\router\app_router.dart:208:16 - non_type_as_type_argument
+  error - The getter 'pardonsRemaining' isn't defined for the type 'StreakState' - lib\features\ash\ash_protocol_screen.dart:20:30 - undefined_getter
+  error - The method 'useDirectorsPardon' isn't defined for the type 'StreakNotifier' - lib\features\ash\ash_protocol_screen.dart:173:49 - undefined_method
+  error - Undefined class 'StreakState' - lib\features\ash\ash_protocol_screen.dart:184:28 - undefined_class
+  error - The getter 'bodySmall' isn't defined for the type 'AppTypography' - lib\features\auth\auth_screen.dart:70:38 - undefined_getter
+  error - The getter 'bodySmall' isn't defined for the type 'AppTypography' - lib\features\auth\auth_screen.dart:132:38 - undefined_getter
+  error - The getter 'bodySmall' isn't defined for the type 'AppTypography' - lib\features\auth\auth_screen.dart:418:30 - undefined_getter
+  error - The getter 'capacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\batch\batch_screen.dart:60:31 - undefined_getter
+  error - The getter 'isNearCapacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\batch\batch_screen.dart:133:33 - undefined_getter
+  error - The getter 'capacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\home\home_screen.dart:166:47 - undefined_getter
+  error - The getter 'isNearCapacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\home\home_screen.dart:172:53 - undefined_getter
+  error - The getter 'isNearCapacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\home\home_screen.dart:178:39 - undefined_getter
+  error - The getter 'capacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\home\home_screen.dart:181:49 - undefined_getter
+  error - The getter 'isNearCapacity' isn't defined for the type 'BuildlessNotifier<List<BatchEntry>>' - lib\features\home\home_screen.dart:183:39 - undefined_getter
+  error - The argument type 'Future<int>' can't be assigned to the parameter type 'int'.  - lib\features\home\home_screen.dart:239:52 - argument_type_not_assignable
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\vault\audit_session_screen.dart:39:9 - use_build_context_synchronously
+   info - The imported package 'firebase_core' isn't a dependency of the importing package - lib\firebase_options.dart:28:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:firebase_core/firebase_core.dart' - lib\firebase_options.dart:28:8 - uri_does_not_exist
+  error - Const variables must be initialized with a constant value - lib\firebase_options.dart:49:42 - const_initialized_with_non_constant_value
+  error - The method 'FirebaseOptions' isn't defined for the type 'DefaultFirebaseOptions' - lib\firebase_options.dart:49:42 - undefined_method
+  error - Const variables must be initialized with a constant value - lib\firebase_options.dart:57:38 - const_initialized_with_non_constant_value
+  error - The method 'FirebaseOptions' isn't defined for the type 'DefaultFirebaseOptions' - lib\firebase_options.dart:57:38 - undefined_method
+  error - Const variables must be initialized with a constant value - lib\firebase_options.dart:66:38 - const_initialized_with_non_constant_value
+  error - The method 'FirebaseOptions' isn't defined for the type 'DefaultFirebaseOptions' - lib\firebase_options.dart:66:38 - undefined_method
+  error - The named parameter 'uiLocalNotificationDateInterpretation' is required, but there's no corresponding argument - lib\shared\notifications\notification_scheduler.dart:73:19 - missing_required_argument
+  error - The named parameter 'uiLocalNotificationDateInterpretation' is required, but there's no corresponding argument - lib\shared\notifications\notification_scheduler.dart:123:19 - missing_required_argument
+  error - The named parameter 'uiLocalNotificationDateInterpretation' is required, but there's no corresponding argument - lib\shared\notifications\notification_scheduler.dart:165:19 - missing_required_argument
+  error - Undefined name 'SharePlus' - lib\shared\privacy\data_export_service.dart:88:28 - undefined_identifier
+  error - Class 'ConnectivityNotifier' can't define static member '_probe' and have instance member 'ConnectivityNotifier._probe' with the same name - lib\shared\state\connectivity_provider.dart:20:16 - conflicting_static_and_instance
+  error - The expression doesn't evaluate to a function, so it can't be invoked - lib\shared\state\connectivity_provider.dart:44:26 - invocation_of_non_function_expression
+warning - The declaration '_probe' isn't referenced - lib\shared\state\connectivity_provider.dart:49:16 - unused_element
+

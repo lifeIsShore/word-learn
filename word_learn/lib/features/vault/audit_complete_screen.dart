@@ -7,7 +7,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../shared/state/audit_provider.dart';
-import '../../shared/state/audit_state.dart';
 
 /// WL-190: Vault Audit complete — shows retained vs demoted counts, then
 /// dismisses back to vault.
@@ -74,7 +73,8 @@ class AuditCompleteScreen extends ConsumerWidget {
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3)),
+                      color: AppColors.warning.withValues(alpha: 0.3),
+                    ),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Column(
@@ -82,15 +82,24 @@ class AuditCompleteScreen extends ConsumerWidget {
                         .map(
                           (e) => ListTile(
                             dense: true,
-                            leading: const Icon(Icons.arrow_back,
-                                color: AppColors.warning, size: 16),
-                            title: Text(e.word,
-                                style: AppTypography.bodyMedium
-                                    .copyWith(color: AppColors.darkGray)),
-                            subtitle: Text(e.meaning,
-                                style: AppTypography.bodyMedium.copyWith(
-                                    color: AppColors.mediumGray,
-                                    fontSize: 11)),
+                            leading: const Icon(
+                              Icons.arrow_back,
+                              color: AppColors.warning,
+                              size: 16,
+                            ),
+                            title: Text(
+                              e.word,
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.darkGray,
+                              ),
+                            ),
+                            subtitle: Text(
+                              e.meaning,
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.mediumGray,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         )
                         .toList(),
@@ -104,8 +113,9 @@ class AuditCompleteScreen extends ConsumerWidget {
                 audit.demotedCount > 0
                     ? 'Words marked Hard or Familiar need more practice. They\'ve been added back to your batch for review.'
                     : 'Outstanding. All reviewed words remain mastered.',
-                style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.mediumGray),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.mediumGray,
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -128,11 +138,7 @@ class AuditCompleteScreen extends ConsumerWidget {
 }
 
 class _AuditStatRow extends StatelessWidget {
-  const _AuditStatRow({
-    required this.label,
-    required this.value,
-    this.color,
-  });
+  const _AuditStatRow({required this.label, required this.value, this.color});
 
   final String label;
   final String value;
@@ -145,8 +151,7 @@ class _AuditStatRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style:
-              AppTypography.bodyLarge.copyWith(color: AppColors.mediumGray),
+          style: AppTypography.bodyLarge.copyWith(color: AppColors.mediumGray),
         ),
         Text(
           value,

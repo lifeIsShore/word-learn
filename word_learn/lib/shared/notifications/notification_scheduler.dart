@@ -85,6 +85,8 @@ class NotificationScheduler {
         ),
         iOS: const DarwinNotificationDetails(),
       ),
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time, // repeat daily
       payload: _payload('/home'),
@@ -100,9 +102,7 @@ class NotificationScheduler {
   ///   • When curfew time is changed.
   ///
   /// Cancel this (via [cancelStreakWarning]) when session IS completed.
-  Future<void> scheduleStreakWarning({
-    required TimeOfDay curfew,
-  }) async {
+  Future<void> scheduleStreakWarning({required TimeOfDay curfew}) async {
     await _plugin.cancel(NotificationService.idStreakWarning);
 
     final now = tz.TZDateTime.now(tz.local);
@@ -110,8 +110,11 @@ class NotificationScheduler {
     // Fire 60 min before curfew.
     final warningHour = curfew.hour;
     final warningMinute = curfew.minute;
-    var warningTime = _nextInstanceOf(now, warningHour, warningMinute)
-        .subtract(const Duration(hours: 1));
+    var warningTime = _nextInstanceOf(
+      now,
+      warningHour,
+      warningMinute,
+    ).subtract(const Duration(hours: 1));
 
     // If already past this time today, skip — no point showing a warning
     // after the curfew has passed for today.
@@ -133,8 +136,12 @@ class NotificationScheduler {
           priority: Priority.high,
           styleInformation: const BigTextStyleInformation(''),
         ),
-        iOS: const DarwinNotificationDetails(interruptionLevel: InterruptionLevel.timeSensitive),
+        iOS: const DarwinNotificationDetails(
+          interruptionLevel: InterruptionLevel.timeSensitive,
+        ),
       ),
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: _payload('/session'),
     );
@@ -176,6 +183,8 @@ class NotificationScheduler {
         ),
         iOS: const DarwinNotificationDetails(),
       ),
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: _payload('/home'),
     );

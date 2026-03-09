@@ -5,8 +5,9 @@ import '../services/curfew_service.dart';
 import '../services/local_storage_service.dart';
 import 'streak_state.dart';
 
-final streakProvider =
-    NotifierProvider<StreakNotifier, StreakState>(StreakNotifier.new);
+final streakProvider = NotifierProvider<StreakNotifier, StreakState>(
+  StreakNotifier.new,
+);
 
 class StreakNotifier extends Notifier<StreakState> {
   final _storage = LocalStorageService.instance;
@@ -29,6 +30,11 @@ class StreakNotifier extends Notifier<StreakState> {
           ? DateTime.tryParse(row['last_session_date'] as String)
           : null,
       ashPending: (row['ash_pending'] as int? ?? 0) == 1,
+      pardonsRemaining: row['pardons_remaining'] as int? ?? 0,
+      lastDirectorPardonUsed: row['last_director_pardon_used'] != null
+          ? DateTime.tryParse(row['last_director_pardon_used'] as String)
+          : null,
+      totalSessionsCompleted: row['total_sessions_completed'] as int? ?? 0,
     );
   }
 
@@ -47,10 +53,7 @@ class StreakNotifier extends Notifier<StreakState> {
     );
 
     if (shouldAsh) {
-      state = state.copyWith(
-        currentStreak: 0,
-        ashPending: true,
-      );
+      state = state.copyWith(currentStreak: 0, ashPending: true);
       await _persist();
     }
   }
@@ -74,18 +77,20 @@ class StreakNotifier extends Notifier<StreakState> {
     }
 
     // Check if this continues a streak (session yesterday or first ever).
-    final isConsecutive = lastDay == null ||
-        lastDay == today.subtract(const Duration(days: 1));
+    final isConsecutive =
+        lastDay == null || lastDay == today.subtract(const Duration(days: 1));
 
     final newStreak = isConsecutive ? state.currentStreak + 1 : 1;
-    final newLongest =
-        newStreak > state.longestStreak ? newStreak : state.longestStreak;
+    final newLongest = newStreak > state.longestStreak
+        ? newStreak
+        : state.longestStreak;
 
     state = state.copyWith(
       currentStreak: newStreak,
       longestStreak: newLongest,
       sessionCompletedToday: true,
       lastSessionDate: now,
+      totalSessionsCompleted: state.totalSessionsCompleted + 1,
     );
     await _persist();
   }
@@ -93,6 +98,20 @@ class StreakNotifier extends Notifier<StreakState> {
   /// Dismiss the Ash modal — clears the pending flag. WL-220.
   Future<void> acknowledgeAsh() async {
     state = state.copyWith(ashPending: false, sessionCompletedToday: false);
+    await _persist();
+  }
+
+  /// Use a Director's Pardon to restore a broken streak.
+  Future<void> useDirectorsPardon([int? count]) async {
+    if (state.pardonsRemaining <= 0) return;
+
+    state = state.copyWith(
+      currentStreak:
+          count ?? state.longestStreak, // Restore to best known or count
+      pardonsRemaining: state.pardonsRemaining - 1,
+      lastDirectorPardonUsed: DateTime.now(),
+      ashPending: false,
+    );
     await _persist();
   }
 
@@ -105,6 +124,9 @@ class StreakNotifier extends Notifier<StreakState> {
       sessionCompletedToday: state.sessionCompletedToday,
       lastSessionDate: state.lastSessionDate,
       ashPending: state.ashPending,
+      pardonsRemaining: state.pardonsRemaining,
+      lastDirectorPardonUsed: state.lastDirectorPardonUsed,
+      totalSessionsCompleted: state.totalSessionsCompleted,
     );
   }
 }

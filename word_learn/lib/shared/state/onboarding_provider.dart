@@ -4,8 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/local_storage_service.dart';
 import 'onboarding_state.dart';
 
+export 'onboarding_state.dart';
+
 final onboardingProvider =
-    NotifierProvider<OnboardingNotifier, OnboardingState>(OnboardingNotifier.new);
+    NotifierProvider<OnboardingNotifier, OnboardingState>(
+      OnboardingNotifier.new,
+    );
 
 class OnboardingNotifier extends Notifier<OnboardingState> {
   final _storage = LocalStorageService.instance;
@@ -23,15 +27,18 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
 
     state = OnboardingState(
       baseLanguageCode: data['baseLanguageCode'] as String,
-      targetLanguageCodes:
-          List<String>.from(data['targetLanguageCodes'] as List),
+      targetLanguageCodes: List<String>.from(
+        data['targetLanguageCodes'] as List,
+      ),
       cefrPerTarget: Map<String, String>.from(
-          data['cefrPerTarget'] as Map<dynamic, dynamic>),
+        data['cefrPerTarget'] as Map<dynamic, dynamic>,
+      ),
       curfew: TimeOfDay(
         hour: data['curfewHour'] as int,
         minute: data['curfewMinute'] as int,
       ),
       dailyDripCount: data['dailyDripCount'] as int,
+      onboardingComplete: true, // loaded from DB → already completed
     );
     return true;
   }
@@ -64,6 +71,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
 
   /// Called at the end of onboarding flow to persist all choices at once.
   Future<void> completeOnboarding() async {
+    state = state.copyWith(onboardingComplete: true);
     await _persist();
   }
 

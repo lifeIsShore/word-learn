@@ -27,17 +27,15 @@ class LocalStorageService {
 
   Future<void> saveSetting(String key, String value) async {
     final db = await _db;
-    await db.insert(
-      'settings',
-      {'key': key, 'value': value},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> getSetting(String key) async {
     final db = await _db;
-    final rows =
-        await db.query('settings', where: 'key = ?', whereArgs: [key]);
+    final rows = await db.query('settings', where: 'key = ?', whereArgs: [key]);
     return rows.isEmpty ? null : rows.first['value'] as String?;
   }
 
@@ -81,19 +79,21 @@ class LocalStorageService {
     required bool sessionCompletedToday,
     required DateTime? lastSessionDate,
     required bool ashPending,
+    required int pardonsRemaining,
+    required DateTime? lastDirectorPardonUsed,
+    required int totalSessionsCompleted,
   }) async {
     final db = await _db;
-    await db.update(
-      'streak',
-      {
-        'current_streak': currentStreak,
-        'longest_streak': longestStreak,
-        'session_completed_today': sessionCompletedToday ? 1 : 0,
-        'last_session_date': lastSessionDate?.toIso8601String(),
-        'ash_pending': ashPending ? 1 : 0,
-      },
-      where: 'id = 1',
-    );
+    await db.update('streak', {
+      'current_streak': currentStreak,
+      'longest_streak': longestStreak,
+      'session_completed_today': sessionCompletedToday ? 1 : 0,
+      'last_session_date': lastSessionDate?.toIso8601String(),
+      'ash_pending': ashPending ? 1 : 0,
+      'pardons_remaining': pardonsRemaining,
+      'last_director_pardon_used': lastDirectorPardonUsed?.toIso8601String(),
+      'total_sessions_completed': totalSessionsCompleted,
+    }, where: 'id = 1');
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -125,8 +125,11 @@ class LocalStorageService {
     final db = await _db;
     final batch = db.batch();
     for (final e in entries) {
-      batch.insert('batch_entries', _batchEntryToRow(e),
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      batch.insert(
+        'batch_entries',
+        _batchEntryToRow(e),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
     await batch.commit(noResult: true);
   }
@@ -138,8 +141,11 @@ class LocalStorageService {
 
   Future<void> clearBatch(String languageKey) async {
     final db = await _db;
-    await db.delete('batch_entries',
-        where: 'language_key = ?', whereArgs: [languageKey]);
+    await db.delete(
+      'batch_entries',
+      where: 'language_key = ?',
+      whereArgs: [languageKey],
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -148,8 +154,7 @@ class LocalStorageService {
 
   Future<List<BatchEntry>> loadVault() async {
     final db = await _db;
-    final rows =
-        await db.query('vault_entries', orderBy: 'vaulted_at DESC');
+    final rows = await db.query('vault_entries', orderBy: 'vaulted_at DESC');
     return rows.map(_rowToVaultEntry).toList();
   }
 
@@ -185,27 +190,31 @@ class LocalStorageService {
   }
 
   /// Upsert a list of raw batch-entry maps (from restore).
-  Future<void> upsertBatchEntriesRaw(
-      List<Map<String, dynamic>> rows) async {
+  Future<void> upsertBatchEntriesRaw(List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return;
     final db = await _db;
     final batch = db.batch();
     for (final row in rows) {
-      batch.insert('batch_entries', row,
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      batch.insert(
+        'batch_entries',
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
     await batch.commit(noResult: true);
   }
 
   /// Upsert a list of raw vault-entry maps (from restore).
-  Future<void> upsertVaultEntriesRaw(
-      List<Map<String, dynamic>> rows) async {
+  Future<void> upsertVaultEntriesRaw(List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return;
     final db = await _db;
     final batch = db.batch();
     for (final row in rows) {
-      batch.insert('vault_entries', row,
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      batch.insert(
+        'vault_entries',
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
     await batch.commit(noResult: true);
   }
@@ -213,17 +222,16 @@ class LocalStorageService {
   /// Save a raw streak map (from restore).
   Future<void> saveStreakRaw(Map<String, dynamic> row) async {
     final db = await _db;
-    await db.update(
-      'streak',
-      {
-        'current_streak': row['current_streak'] ?? 0,
-        'longest_streak': row['longest_streak'] ?? 0,
-        'session_completed_today': row['session_completed_today'] ?? 0,
-        'last_session_date': row['last_session_date'],
-        'ash_pending': row['ash_pending'] ?? 0,
-      },
-      where: 'id = 1',
-    );
+    await db.update('streak', {
+      'current_streak': row['current_streak'] ?? 0,
+      'longest_streak': row['longest_streak'] ?? 0,
+      'session_completed_today': row['session_completed_today'] ?? 0,
+      'last_session_date': row['last_session_date'],
+      'ash_pending': row['ash_pending'] ?? 0,
+      'pardons_remaining': row['pardons_remaining'] ?? 0,
+      'last_director_pardon_used': row['last_director_pardon_used'],
+      'total_sessions_completed': row['total_sessions_completed'] ?? 0,
+    }, where: 'id = 1');
   }
 
   /// Wipe all user-generated data — used before restoring a backup.
@@ -245,63 +253,63 @@ class LocalStorageService {
   // ══════════════════════════════════════════════════════════════════════════
 
   Map<String, dynamic> _batchEntryToRow(BatchEntry e) => {
-        'id': e.id,
-        'language_key': e.languageKey,
-        'word': e.word,
-        'meaning': e.meaning,
-        'example_sentence': e.exampleSentence,
-        'example_translation': e.exampleTranslation,
-        'next_review_date': e.nextReviewDate?.toIso8601String(),
-        'ease_factor': e.easeFactor,
-        'interval_days': e.intervalDays,
-        'repetitions': e.repetitions,
-        'added_at': e.addedAt.toIso8601String(),
-        'is_new_today': e.isNewToday ? 1 : 0,
-      };
+    'id': e.id,
+    'language_key': e.languageKey,
+    'word': e.word,
+    'meaning': e.meaning,
+    'example_sentence': e.exampleSentence,
+    'example_translation': e.exampleTranslation,
+    'next_review_date': e.nextReviewDate?.toIso8601String(),
+    'ease_factor': e.easeFactor,
+    'interval_days': e.intervalDays,
+    'repetitions': e.repetitions,
+    'added_at': e.addedAt.toIso8601String(),
+    'is_new_today': e.isNewToday ? 1 : 0,
+  };
 
   BatchEntry _rowToBatchEntry(Map<String, dynamic> row) => BatchEntry(
-        id: row['id'] as String,
-        languageKey: row['language_key'] as String,
-        word: row['word'] as String,
-        meaning: row['meaning'] as String,
-        exampleSentence: row['example_sentence'] as String,
-        exampleTranslation: row['example_translation'] as String,
-        nextReviewDate: row['next_review_date'] != null
-            ? DateTime.tryParse(row['next_review_date'] as String)
-            : null,
-        easeFactor: (row['ease_factor'] as num).toDouble(),
-        intervalDays: row['interval_days'] as int,
-        repetitions: row['repetitions'] as int,
-        addedAt: DateTime.parse(row['added_at'] as String),
-        isNewToday: (row['is_new_today'] as int) == 1,
-      );
+    id: row['id'] as String,
+    languageKey: row['language_key'] as String,
+    word: row['word'] as String,
+    meaning: row['meaning'] as String,
+    exampleSentence: row['example_sentence'] as String,
+    exampleTranslation: row['example_translation'] as String,
+    nextReviewDate: row['next_review_date'] != null
+        ? DateTime.tryParse(row['next_review_date'] as String)
+        : null,
+    easeFactor: (row['ease_factor'] as num).toDouble(),
+    intervalDays: row['interval_days'] as int,
+    repetitions: row['repetitions'] as int,
+    addedAt: DateTime.parse(row['added_at'] as String),
+    isNewToday: (row['is_new_today'] as int) == 1,
+  );
 
   Map<String, dynamic> _vaultEntryToRow(BatchEntry e) => {
-        'id': e.id,
-        'language_key': e.languageKey,
-        'word': e.word,
-        'meaning': e.meaning,
-        'example_sentence': e.exampleSentence,
-        'example_translation': e.exampleTranslation,
-        'ease_factor': e.easeFactor,
-        'interval_days': e.intervalDays,
-        'repetitions': e.repetitions,
-        'added_at': e.addedAt.toIso8601String(),
-        'vaulted_at': DateTime.now().toIso8601String(),
-      };
+    'id': e.id,
+    'language_key': e.languageKey,
+    'word': e.word,
+    'meaning': e.meaning,
+    'example_sentence': e.exampleSentence,
+    'example_translation': e.exampleTranslation,
+    'ease_factor': e.easeFactor,
+    'interval_days': e.intervalDays,
+    'repetitions': e.repetitions,
+    'added_at': e.addedAt.toIso8601String(),
+    'vaulted_at': DateTime.now().toIso8601String(),
+  };
 
   BatchEntry _rowToVaultEntry(Map<String, dynamic> row) => BatchEntry(
-        id: row['id'] as String,
-        languageKey: row['language_key'] as String,
-        word: row['word'] as String,
-        meaning: row['meaning'] as String,
-        exampleSentence: row['example_sentence'] as String,
-        exampleTranslation: row['example_translation'] as String,
-        easeFactor: (row['ease_factor'] as num).toDouble(),
-        intervalDays: row['interval_days'] as int,
-        repetitions: row['repetitions'] as int,
-        addedAt: DateTime.parse(row['added_at'] as String),
-      );
+    id: row['id'] as String,
+    languageKey: row['language_key'] as String,
+    word: row['word'] as String,
+    meaning: row['meaning'] as String,
+    exampleSentence: row['example_sentence'] as String,
+    exampleTranslation: row['example_translation'] as String,
+    easeFactor: (row['ease_factor'] as num).toDouble(),
+    intervalDays: row['interval_days'] as int,
+    repetitions: row['repetitions'] as int,
+    addedAt: DateTime.parse(row['added_at'] as String),
+  );
 
   // ══════════════════════════════════════════════════════════════════════════
   // Onboarding helpers (stored as settings keys)
@@ -324,8 +332,9 @@ class LocalStorageService {
     await saveSetting(_kBaseLanguage, baseLanguageCode);
     await saveSetting(_kTargetLanguages, targetLanguageCodes.join(','));
     // Encode cefr map as "de:B2|es:B2"
-    final cefrStr =
-        cefrPerTarget.entries.map((e) => '${e.key}:${e.value}').join('|');
+    final cefrStr = cefrPerTarget.entries
+        .map((e) => '${e.key}:${e.value}')
+        .join('|');
     await saveSetting(_kCefrMap, cefrStr);
     await saveInt(_kCurfewHour, curfew.hour);
     await saveInt(_kCurfewMinute, curfew.minute);

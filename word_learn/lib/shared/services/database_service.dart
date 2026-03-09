@@ -18,7 +18,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const _dbName = 'word_learn.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 3;
 
   Database? _db;
 
@@ -62,13 +62,17 @@ class DatabaseService {
         longest_streak          INTEGER NOT NULL DEFAULT 0,
         session_completed_today INTEGER NOT NULL DEFAULT 0,
         last_session_date       TEXT,
-        ash_pending             INTEGER NOT NULL DEFAULT 0
+        ash_pending             INTEGER NOT NULL DEFAULT 0,
+        pardons_remaining       INTEGER NOT NULL DEFAULT 0,
+        last_director_pardon_used TEXT,
+        total_sessions_completed INTEGER DEFAULT 0
       )
     ''');
 
     // Seed the single streak row.
     await db.execute(
-        'INSERT INTO streak (id) VALUES (1) ON CONFLICT DO NOTHING');
+      'INSERT INTO streak (id) VALUES (1) ON CONFLICT DO NOTHING',
+    );
 
     await db.execute('''
       CREATE TABLE batch_entries (
@@ -88,9 +92,11 @@ class DatabaseService {
     ''');
 
     await db.execute(
-        'CREATE INDEX idx_batch_lang ON batch_entries (language_key)');
+      'CREATE INDEX idx_batch_lang ON batch_entries (language_key)',
+    );
     await db.execute(
-        'CREATE INDEX idx_batch_review ON batch_entries (next_review_date)');
+      'CREATE INDEX idx_batch_review ON batch_entries (next_review_date)',
+    );
 
     await db.execute('''
       CREATE TABLE vault_entries (
@@ -108,14 +114,25 @@ class DatabaseService {
       )
     ''');
 
-    await db
-        .execute('CREATE INDEX idx_vault_lang ON vault_entries (language_key)');
+    await db.execute(
+      'CREATE INDEX idx_vault_lang ON vault_entries (language_key)',
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Future migrations go here.
-    // Example:
-    //   if (oldVersion < 2) { await db.execute('ALTER TABLE ...'); }
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE streak ADD COLUMN pardons_remaining INTEGER NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE streak ADD COLUMN last_director_pardon_used TEXT',
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE streak ADD COLUMN total_sessions_completed INTEGER DEFAULT 0',
+      );
+    }
   }
 
   // ── Generic helpers ────────────────────────────────────────────────────────
@@ -131,9 +148,11 @@ class DatabaseService {
     await db.delete('batch_entries');
     await db.delete('vault_entries');
     await db.delete('settings');
-    await db.execute('UPDATE streak SET '
-        'current_streak=0, longest_streak=0, '
-        'session_completed_today=0, last_session_date=NULL, ash_pending=0 '
-        'WHERE id=1');
+    await db.execute(
+      'UPDATE streak SET '
+      'current_streak=0, longest_streak=0, '
+      'session_completed_today=0, last_session_date=NULL, ash_pending=0 '
+      'WHERE id=1',
+    );
   }
 }

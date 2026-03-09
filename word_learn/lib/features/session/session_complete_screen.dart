@@ -6,7 +6,6 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/config/app_config.dart';
 import '../../shared/notifications/notification_scheduler.dart';
 import '../../shared/state/backup_provider.dart';
 import '../../shared/state/curfew_status_provider.dart';
@@ -85,15 +84,11 @@ class SessionCompleteScreen extends ConsumerWidget {
               // ── CTA ────────────────────────────────────────────────────
               FilledButton(
                 onPressed: () async {
-                  await ref
-                      .read(sessionProvider.notifier)
-                      .completeAndClear();
+                  await ref.read(sessionProvider.notifier).completeAndClear();
                   // WL-500 Phase 2: Silent background backup after every session.
                   ref.read(backupProvider.notifier).sync(silent: true);
                   // Session 17: Cancel streak-at-risk warning — session is done.
-                  if (!AppConfig.devModeSkipFirebase) {
-                    await NotificationScheduler.instance.cancelStreakWarning();
-                  }
+                  await NotificationScheduler.instance.cancelStreakWarning();
                   if (context.mounted) context.go(AppRoutes.home);
                 },
                 child: const Text('CONTINUE'),
@@ -124,15 +119,15 @@ class _StatRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style:
-                AppTypography.bodyLarge.copyWith(color: AppColors.mediumGray)),
+        Text(
+          label,
+          style: AppTypography.bodyLarge.copyWith(color: AppColors.mediumGray),
+        ),
         Text(
           value,
           style: AppTypography.bodyLarge.copyWith(
             color: highlight ? AppColors.success : AppColors.darkGray,
-            fontWeight:
-                highlight ? FontWeight.w600 : FontWeight.normal,
+            fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
       ],
@@ -152,8 +147,7 @@ class _LanguageBreakdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primaryTeal.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-            color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,26 +161,29 @@ class _LanguageBreakdown extends StatelessWidget {
             ),
           ),
           SizedBox(height: AppSpacing.sm),
-          ...stats.map((s) => Padding(
-                padding: EdgeInsets.only(bottom: AppSpacing.xs),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      s.languageName,
-                      style: AppTypography.bodyMedium
-                          .copyWith(color: AppColors.darkGray),
+          ...stats.map(
+            (s) => Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    s.languageName,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.darkGray,
                     ),
-                    Text(
-                      '${s.reviewed} reviewed · ${s.mastered} mastered',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.mediumGray,
-                        fontSize: 11,
-                      ),
+                  ),
+                  Text(
+                    '${s.reviewed} reviewed · ${s.mastered} mastered',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.mediumGray,
+                      fontSize: 11,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -210,8 +207,9 @@ class _SingleLanguageNote extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.primaryTeal.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(4),
-            border:
-                Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: AppColors.primaryTeal.withValues(alpha: 0.3),
+            ),
           ),
           child: Text(
             stat.languageName,
@@ -235,14 +233,12 @@ class _CurfewBanner extends StatelessWidget {
     if (curfewStatus.isNormal) {
       return Text(
         'Curfew: ${curfewStatus.curfewTimeLabel}. ${curfewStatus.countdownLabel}',
-        style:
-            AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
         textAlign: TextAlign.center,
       );
     }
 
-    final color =
-        curfewStatus.isIce ? AppColors.iceTeal : AppColors.error;
+    final color = curfewStatus.isIce ? AppColors.iceTeal : AppColors.error;
     final bg = curfewStatus.isIce
         ? AppColors.iceBackground
         : AppColors.error.withValues(alpha: 0.08);

@@ -54,10 +54,12 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
     final batch = activeLang != null
         ? ref.watch(languageBatchProvider(activeLang))
         : ref.watch(activeBatchProvider);
-    final notifier = activeLang != null
-        ? ref.read(languageBatchProvider(activeLang).notifier)
-        : ref.read(activeBatchProvider.notifier);
-    final capacity = notifier.capacity;
+    final capacity = activeLang != null
+        ? ref.read(languageBatchProvider(activeLang).notifier).capacity
+        : ref.read(activeBatchProvider.notifier).capacity;
+    final isNearCapacity = activeLang != null
+        ? ref.read(languageBatchProvider(activeLang).notifier).isNearCapacity
+        : ref.read(activeBatchProvider.notifier).isNearCapacity;
     final sorted = _sorted(batch);
     final newCount = batch.where((e) => e.isNewToday).length;
 
@@ -79,9 +81,36 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Header bar ────────────────────────────────────────────────
+          if (isNearCapacity)
+            Container(
+              padding: EdgeInsets.all(AppSpacing.md),
+              color: AppColors.softAmber.withValues(alpha: 0.1),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.deepAmber,
+                    size: 20,
+                  ),
+                  SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'Batch is reaching capacity ($capacity). Words will still drip, but consider auditing soon!',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.deepAmber,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Padding(
             padding: EdgeInsets.fromLTRB(
-                AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              0,
+            ),
             child: Row(
               children: [
                 Column(
@@ -89,14 +118,17 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
                   children: [
                     Text(
                       '${batch.length} / $capacity',
-                      style: AppTypography.labelLarge
-                          .copyWith(color: AppColors.primaryTeal),
+                      style: AppTypography.labelLarge.copyWith(
+                        color: AppColors.primaryTeal,
+                      ),
                     ),
                     if (newCount > 0)
                       Text(
                         '$newCount new today',
-                        style: AppTypography.bodyMedium
-                            .copyWith(color: AppColors.success, fontSize: 11),
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.success,
+                          fontSize: 11,
+                        ),
                       ),
                   ],
                 ),
@@ -106,14 +138,21 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
                   underline: const SizedBox(),
                   items: const [
                     DropdownMenuItem(
-                        value: BatchSort.dueFirst, child: Text('Due first')),
+                      value: BatchSort.dueFirst,
+                      child: Text('Due first'),
+                    ),
                     DropdownMenuItem(
-                        value: BatchSort.hardFirst, child: Text('Hard first')),
+                      value: BatchSort.hardFirst,
+                      child: Text('Hard first'),
+                    ),
                     DropdownMenuItem(
-                        value: BatchSort.oldestFirst,
-                        child: Text('Oldest first')),
+                      value: BatchSort.oldestFirst,
+                      child: Text('Oldest first'),
+                    ),
                     DropdownMenuItem(
-                        value: BatchSort.newFirst, child: Text('Newest first')),
+                      value: BatchSort.newFirst,
+                      child: Text('Newest first'),
+                    ),
                   ],
                   onChanged: (v) =>
                       setState(() => _sort = v ?? BatchSort.dueFirst),
@@ -124,13 +163,15 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
           // ── Capacity progress bar ─────────────────────────────────────
           Padding(
             padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(2),
               child: LinearProgressIndicator(
                 value: batch.length / capacity,
                 backgroundColor: AppColors.lightGray,
-                color: notifier.isNearCapacity
+                color: isNearCapacity
                     ? AppColors.warning
                     : AppColors.primaryTeal,
                 minHeight: 4,
@@ -143,14 +184,14 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
                 ? Center(
                     child: Text(
                       'No words in batch.\nTap Daily Drip on Home to add words.',
-                      style: AppTypography.bodyMedium
-                          .copyWith(color: AppColors.mediumGray),
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.mediumGray,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   )
                 : ListView.builder(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     itemCount: sorted.length,
                     itemBuilder: (context, index) {
                       final entry = sorted[index];
@@ -172,8 +213,8 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
     final diffColor = entry.difficultyLevel == 'easy'
         ? AppColors.success
         : entry.difficultyLevel == 'medium'
-            ? AppColors.warning
-            : AppColors.error;
+        ? AppColors.warning
+        : AppColors.error;
 
     showModalBottomSheet(
       context: context,
@@ -190,49 +231,59 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text(entry.word,
-                      style: AppTypography.displayMedium
-                          .copyWith(color: AppColors.darkGray)),
+                  child: Text(
+                    entry.word,
+                    style: AppTypography.displayMedium.copyWith(
+                      color: AppColors.darkGray,
+                    ),
+                  ),
                 ),
                 if (entry.isNewToday)
                   _Badge(label: 'NEW', color: AppColors.success),
               ],
             ),
             SizedBox(height: AppSpacing.sm),
-            Text(entry.meaning,
-                style: AppTypography.bodyLarge
-                    .copyWith(color: AppColors.primaryTeal)),
+            Text(
+              entry.meaning,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.primaryTeal,
+              ),
+            ),
             SizedBox(height: AppSpacing.md),
-            Text(entry.exampleSentence,
-                style: AppTypography.bodyMedium
-                    .copyWith(fontStyle: FontStyle.italic)),
+            Text(
+              entry.exampleSentence,
+              style: AppTypography.bodyMedium.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
+            ),
             SizedBox(height: AppSpacing.xs),
-            Text(entry.exampleTranslation,
-                style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.mediumGray)),
+            Text(
+              entry.exampleTranslation,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mediumGray,
+              ),
+            ),
             SizedBox(height: AppSpacing.md),
             // SRS metadata
             Row(
               children: [
                 _SrsStat(
-                    label: 'Ease',
-                    value: entry.easeFactor.toStringAsFixed(2),
-                    color: diffColor),
+                  label: 'Ease',
+                  value: entry.easeFactor.toStringAsFixed(2),
+                  color: diffColor,
+                ),
                 SizedBox(width: AppSpacing.lg),
-                _SrsStat(
-                    label: 'Interval',
-                    value: '${entry.intervalDays}d'),
+                _SrsStat(label: 'Interval', value: '${entry.intervalDays}d'),
                 SizedBox(width: AppSpacing.lg),
-                _SrsStat(
-                    label: 'Reps',
-                    value: '${entry.repetitions}'),
+                _SrsStat(label: 'Reps', value: '${entry.repetitions}'),
               ],
             ),
             SizedBox(height: AppSpacing.sm),
             Text(
               'Next review: ${_formatDate(entry.nextReviewDate)}',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.mediumGray),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mediumGray,
+              ),
             ),
           ],
         ),
@@ -257,10 +308,14 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
               Text(entry.word, style: AppTypography.labelLarge),
               SizedBox(height: AppSpacing.lg),
               ListTile(
-                leading:
-                    const Icon(Icons.check_circle, color: AppColors.success),
+                leading: const Icon(
+                  Icons.check_circle,
+                  color: AppColors.success,
+                ),
                 title: const Text('Graduate to Vault'),
-                subtitle: const Text('Mark as mastered — moves to long-term storage'),
+                subtitle: const Text(
+                  'Mark as mastered — moves to long-term storage',
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   ref.read(activeBatchProvider.notifier).moveToVault(entry.id);
@@ -274,10 +329,14 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.remove_circle_outline,
-                    color: AppColors.error),
+                leading: const Icon(
+                  Icons.remove_circle_outline,
+                  color: AppColors.error,
+                ),
                 title: const Text('Remove from Batch'),
-                subtitle: const Text('Permanently removes from active learning'),
+                subtitle: const Text(
+                  'Permanently removes from active learning',
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmRemove(context, ref, entry);
@@ -290,21 +349,21 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
     );
   }
 
-  void _confirmRemove(
-      BuildContext context, WidgetRef ref, BatchEntry entry) {
+  void _confirmRemove(BuildContext context, WidgetRef ref, BatchEntry entry) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove from Batch'),
-        content:
-            Text('Remove "${entry.word}" from your active batch? This cannot be undone.'),
+        content: Text(
+          'Remove "${entry.word}" from your active batch? This cannot be undone.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(activeBatchProvider.notifier).remove(entry.id);
@@ -338,14 +397,14 @@ class _BatchWordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final isDue = entry.nextReviewDate == null ||
-        !entry.nextReviewDate!.isAfter(now);
+    final isDue =
+        entry.nextReviewDate == null || !entry.nextReviewDate!.isAfter(now);
 
     final dotColor = entry.difficultyLevel == 'easy'
         ? AppColors.success
         : entry.difficultyLevel == 'medium'
-            ? AppColors.warning
-            : AppColors.error;
+        ? AppColors.warning
+        : AppColors.error;
 
     return Card(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
@@ -355,9 +414,12 @@ class _BatchWordTile extends StatelessWidget {
         title: Row(
           children: [
             Expanded(
-              child: Text(entry.word,
-                  style: AppTypography.bodyLarge
-                      .copyWith(color: AppColors.darkGray)),
+              child: Text(
+                entry.word,
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.darkGray,
+                ),
+              ),
             ),
             if (entry.isNewToday) ...[
               SizedBox(width: AppSpacing.xs),
@@ -371,8 +433,7 @@ class _BatchWordTile extends StatelessWidget {
         ),
         subtitle: Text(
           entry.meaning,
-          style: AppTypography.bodyMedium
-              .copyWith(color: AppColors.mediumGray),
+          style: AppTypography.bodyMedium.copyWith(color: AppColors.mediumGray),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -380,8 +441,10 @@ class _BatchWordTile extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration:
-                  BoxDecoration(shape: BoxShape.circle, color: dotColor),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: dotColor,
+              ),
             ),
             SizedBox(width: AppSpacing.sm),
             Text(
@@ -389,7 +452,9 @@ class _BatchWordTile extends StatelessWidget {
                   ? _shortDate(entry.nextReviewDate!)
                   : '—',
               style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.mediumGray, fontSize: 11),
+                color: AppColors.mediumGray,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -417,7 +482,10 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-            color: color, fontSize: 9, fontWeight: FontWeight.w700),
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -434,12 +502,20 @@ class _SrsStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.mediumGray, fontSize: 11)),
-        Text(value,
-            style: AppTypography.labelLarge.copyWith(
-                color: color ?? AppColors.darkGray, fontSize: 13)),
+        Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.mediumGray,
+            fontSize: 11,
+          ),
+        ),
+        Text(
+          value,
+          style: AppTypography.labelLarge.copyWith(
+            color: color ?? AppColors.darkGray,
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }

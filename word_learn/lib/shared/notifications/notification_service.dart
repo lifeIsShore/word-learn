@@ -1,32 +1,24 @@
-import 'dart:convert';
-
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-/// Session 17 — Push Notification Service.
+/// Session 17 — Local Notification Service.
 ///
-/// Responsibilities:
-///   1. Request notification permissions (iOS prompt, Android 13+ prompt).
-///   2. Initialise flutter_local_notifications with the WordLearn channel.
-///   3. Register FCM token and expose it for backend storage (when auth lands).
-///   4. Handle incoming messages in all three states:
-///        - Foreground  → show local notification banner
-///        - Background  → handled by [firebaseMessagingBackgroundHandler]
-///        - Terminated  → handled on app open via getInitialMessage()
-///   5. Route notification taps to the correct app screen via [onNotificationTap].
+/// Firebase Cloud Messaging (FCM) is stubbed out until google-services.json
+/// is configured. This class handles LOCAL notifications only:
+///   - Foreground banner display
+///   - Android channel creation
+///   - Notification tap routing
+///
+/// FCM (push from server) will be wired in when firebase packages are
+/// uncommented in pubspec.yaml and devModeSkipFirebase = false.
 ///
 /// Notification channel IDs:
 ///   wordlearn_general   — general marketing / updates
 ///   wordlearn_study     — study reminders, streak warnings, drip nudges
-///
-/// Usage:
-///   await NotificationService.instance.init(onTap: (payload) { ... });
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  final _fcm = FirebaseMessaging.instance;
   final _localNotifications = FlutterLocalNotificationsPlugin();
 
   // Channel constants
@@ -48,44 +40,14 @@ class NotificationService {
 
   // ── init ──────────────────────────────────────────────────────────────────
 
-  /// Must be called once during app startup (after Firebase.initializeApp).
+  /// Must be called once during app startup.
   ///
   /// [onTap] receives the JSON payload string when a notification is tapped.
-  /// Parse it with `json.decode(payload)` to get a Map with a 'route' key.
   Future<void> init({void Function(String? payload)? onTap}) async {
     _onTap = onTap;
 
-    // 1. Request permissions.
-    await _requestPermissions();
-
-    // 2. Init local notifications plugin.
+    // Init local notifications plugin.
     await _initLocalNotifications();
-
-    // 3. Wire FCM listeners.
-    _wireFcmListeners();
-
-    // 4. Handle notification that launched the app from terminated state.
-    await _handleTerminatedMessage();
-  }
-
-  // ── Permissions ───────────────────────────────────────────────────────────
-
-  Future<void> _requestPermissions() async {
-    // FCM permission (covers iOS + Android 13+)
-    await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
-    // Android: request exact alarm permission for scheduled local notifications.
-    // On Android < 13 this is granted automatically.
-    final androidPlugin = _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    await androidPlugin?.requestNotificationsPermission();
-    await androidPlugin?.requestExactAlarmsPermission();
   }
 
   // ── Local notifications init ──────────────────────────────────────────────
@@ -93,9 +55,9 @@ class NotificationService {
   Future<void> _initLocalNotifications() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: false, // We handle this via FCM requestPermission
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
 
     await _localNotifications.initialize(
@@ -108,7 +70,10 @@ class NotificationService {
     // Create Android notification channels.
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    await androidPlugin?.requestNotificationsPermission();
 
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
@@ -130,59 +95,9 @@ class NotificationService {
     );
   }
 
-  // ── FCM listeners ─────────────────────────────────────────────────────────
-
-  void _wireFcmListeners() {
-    // Foreground message → show local notification banner.
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _showLocalFromFcm(message);
-    });
-
-    // User tapped a notification while app was in background (not terminated).
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      final payload = json.encode(message.data);
-      _onTap?.call(payload);
-    });
-  }
-
-  Future<void> _handleTerminatedMessage() async {
-    final message = await _fcm.getInitialMessage();
-    if (message != null) {
-      // Slight delay so the app has finished building before navigating.
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      final payload = json.encode(message.data);
-      _onTap?.call(payload);
-    }
-  }
-
-  void _showLocalFromFcm(RemoteMessage message) {
-    final notification = message.notification;
-    if (notification == null) return;
-
-    final androidDetails = AndroidNotificationDetails(
-      _studyChannelId,
-      _studyChannelName,
-      channelDescription: _studyChannelDesc,
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-
-    _localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
-        android: androidDetails,
-        iOS: const DarwinNotificationDetails(),
-      ),
-      payload: json.encode(message.data),
-    );
-  }
-
   // ── Show helpers (called by NotificationScheduler) ────────────────────────
 
-  /// Show an immediate local notification. Used for testing and streak warnings
-  /// that fire programmatically rather than on a schedule.
+  /// Show an immediate local notification.
   Future<void> showImmediate({
     required int id,
     required String title,
@@ -215,24 +130,11 @@ class NotificationService {
 
   /// Cancel all pending and shown notifications.
   Future<void> cancelAll() => _localNotifications.cancelAll();
-
-  // ── FCM token ─────────────────────────────────────────────────────────────
-
-  /// Returns the FCM registration token. May return null if permissions denied
-  /// or on simulator without APNs.
-  Future<String?> getToken() => _fcm.getToken();
-
-  /// Stream that fires whenever the FCM token is refreshed.
-  Stream<String> get onTokenRefresh => _fcm.onTokenRefresh;
 }
 
-// ── Background message handler ─────────────────────────────────────────────
-// MUST be a top-level function — FCM requirement.
-// Registered in main.dart via FirebaseMessaging.onBackgroundMessage().
+/// Stub — kept so files that import this compile.
+/// Will be replaced with real FCM handler when firebase packages are enabled.
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Firebase is already initialised in this isolate by the plugin.
-  // We don't show a local notification here because FCM data-only messages
-  // can be handled silently; notification messages are shown by the OS.
-  debugPrint('[FCM Background] ${message.messageId}: ${message.data}');
+Future<void> firebaseMessagingBackgroundHandler(dynamic message) async {
+  debugPrint('[FCM Background] stub — Firebase not yet configured');
 }

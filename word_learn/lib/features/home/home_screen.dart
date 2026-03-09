@@ -101,9 +101,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final batch = activeLang != null
         ? ref.watch(languageBatchProvider(activeLang))
         : ref.watch(activeBatchProvider);
-    final batchNotifier = activeLang != null
-        ? ref.read(languageBatchProvider(activeLang).notifier)
-        : ref.read(activeBatchProvider.notifier);
+
+    final capacity = activeLang != null
+        ? ref.read(languageBatchProvider(activeLang).notifier).capacity
+        : ref.read(activeBatchProvider.notifier).capacity;
+    final isNearCapacity = activeLang != null
+        ? ref.read(languageBatchProvider(activeLang).notifier).isNearCapacity
+        : ref.read(activeBatchProvider.notifier).isNearCapacity;
 
     final now = DateTime.now();
     final dueCount = batch
@@ -163,25 +167,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     // ── Daily Stats Card ──────────────────────────────
                     _StatsCard(
                       batchTotal: batch.length,
-                      capacity: batchNotifier.capacity,
+                      capacity: capacity,
                       dueCount: dueCount,
                       newTodayCount: newTodayCount,
                       vaultCount: vaultCount,
                       streak: streak.currentStreak,
                       curfewStatus: curfewStatus,
-                      isNearCapacity: batchNotifier.isNearCapacity,
+                      isNearCapacity: isNearCapacity,
                       activeLang: activeLang,
                     ),
 
                     SizedBox(height: AppSpacing.xl),
 
-                    if (batchNotifier.isNearCapacity)
+                    if (isNearCapacity)
                       _CapacityWarning(
                         current: batch.length,
-                        capacity: batchNotifier.capacity,
+                        capacity: capacity,
                       ),
-                    if (batchNotifier.isNearCapacity)
-                      SizedBox(height: AppSpacing.md),
+                    if (isNearCapacity) SizedBox(height: AppSpacing.md),
 
                     if (streak.sessionCompletedToday)
                       _SessionDoneBadge(streak: streak.currentStreak),
@@ -196,7 +199,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ref
                                   .read(sessionProvider.notifier)
                                   .startSession(
-                                      maxCards: 10, config: activeLang);
+                                    maxCards: 10,
+                                    config: activeLang,
+                                  );
                               context.go(AppRoutes.session);
                             },
                       style: FilledButton.styleFrom(
@@ -213,7 +218,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     ),
 
-                    if (batch.isEmpty) ...[   
+                    if (batch.isEmpty) ...[
                       SizedBox(height: AppSpacing.xs),
                       Text(
                         'Batch is empty. Tap Daily Drip to add words first.',
@@ -229,14 +234,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                     // ── Daily Drip (WL-600 wired) ─────────────────────
                     OutlinedButton.icon(
-                      onPressed: () {
-                        final added = ref
+                      onPressed: () async {
+                        final added = await ref
                             .read(activeBatchProvider.notifier)
                             .injectDrip(
                               count: onboarding.dailyDripCount,
                               config: activeLang, // WL-600: pass active lang
                             );
-                        _showDripSnackbar(context, added, activeLang);
+                        if (context.mounted) {
+                          _showDripSnackbar(context, added, activeLang);
+                        }
                       },
                       icon: const Icon(Icons.water_drop, size: 18),
                       label: Text(

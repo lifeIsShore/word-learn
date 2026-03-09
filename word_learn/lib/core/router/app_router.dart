@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/auth_screen.dart';
 import '../../features/batch/batch_screen.dart';
-import '../../features/curfew/ash_screen.dart';
+import '../../features/ash/ash_protocol_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/onboarding/base_language_screen.dart';
 import '../../features/session/session_complete_screen.dart';
@@ -29,7 +29,8 @@ class AppRoutes {
   static const String auth = '/auth';
   static const String onboardingWelcome = '/onboarding/welcome';
   static const String onboardingBaseLanguage = '/onboarding/base-language';
-  static const String onboardingTargetLanguages = '/onboarding/target-languages';
+  static const String onboardingTargetLanguages =
+      '/onboarding/target-languages';
   static const String onboardingCefr = '/onboarding/cefr';
   static const String onboardingCurfew = '/onboarding/curfew';
   static const String onboardingDrip = '/onboarding/drip';
@@ -178,7 +179,7 @@ GoRouter createAppRouter(WidgetRef ref) {
       ),
       GoRoute(
         path: AppRoutes.ash,
-        builder: (context, state) => const AshScreen(),
+        builder: (context, state) => const AshProtocolScreen(),
       ),
       GoRoute(
         path: AppRoutes.settings,
@@ -203,7 +204,10 @@ GoRouter createAppRouter(WidgetRef ref) {
 
 class _ProviderListenable extends ChangeNotifier {
   _ProviderListenable(WidgetRef ref) {
-    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
-    ref.listen<OnboardingState>(onboardingProvider, (_, __) => notifyListeners());
+    ref.listen<AuthState>(authProvider, (_, _) => notifyListeners());
+    ref.listen<OnboardingState>(
+      onboardingProvider,
+      (_, _) => notifyListeners(),
+    );
   }
 }

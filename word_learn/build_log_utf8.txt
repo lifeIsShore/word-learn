@@ -1,0 +1,65 @@
+﻿Running Gradle task 'assembleRelease'...                        
+Font asset "CupertinoIcons.ttf" was tree-shaken, reducing it from 257628 to 848 bytes (99.7% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 5392 bytes (99.7% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+flutter : 
+At line:1 char:1
++ flutter build apk 
+--release > 
+build_log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (:String) [],    
+ RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+Execution failed for 
+task ':app:checkRelease
+AarMetadata'.
+> A failure occurred 
+while executing com.and
+roid.build.gradle.inter
+nal.tasks.CheckAarMetad
+ataWorkAction
+   > An issue was 
+found when checking 
+AAR metadata:
+
+       1.  Dependency '
+:flutter_local_notifica
+tions' requires core 
+library desugaring to 
+be enabled
+           for :app.
+
+           See https://
+developer.android.com/s
+tudio/write/java8-suppo
+rt.html for more
+           details.
+
+* Try:
+> Run with 
+--stacktrace option to 
+get the stack trace.
+> Run with --info or 
+--debug option to get 
+more log output.
+> Run with --scan to 
+get full insights.
+> Get more help at http
+s://help.gradle.org.
+
+BUILD FAILED in 1m 25s
+Running Gradle task 'assembleRelease'...                           85.9s
+Gradle task 
+assembleRelease failed 
+with exit code 1
