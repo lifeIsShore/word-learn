@@ -75,17 +75,16 @@ class DataExportService {
       await file.writeAsString(encoder.convert(export), encoding: utf8);
 
       // ── 4. Open native share sheet ────────────────────────────────────────
-      // share_plus v10+: use SharePlus.instance.shareXFiles
+      // share_plus v10+: use Share.shareXFiles
       final xFile = XFile(
         file.path,
         mimeType: 'application/json',
         name: 'wordlearn_export_$timestamp.json',
       );
 
-      final result = await SharePlus.instance.shareXFiles(
-        [xFile],
-        subject: 'WordLearn — My Learning Data',
-      );
+      final result = await Share.shareXFiles([
+        xFile,
+      ], subject: 'WordLearn — My Learning Data');
 
       // ShareResultStatus.dismissed means the user cancelled — still a success
       // from our perspective (data was prepared; they just didn't pick a target).
