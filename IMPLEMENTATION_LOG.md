@@ -2,7 +2,7 @@
 
 **Purpose:** Track implementation progress like a Kanban board. Use for sprint planning, session notes, and developer handoff.
 
-**Last Updated:** 2026-03-09 (Session 20 — Bug Fix)
+**Last Updated:** 2026-03-09 (Session 21 — Bug Fix)
 
 ---
 
@@ -41,6 +41,7 @@
 
 | ID | Item | Completed | Notes |
 |----|------|-----------|-------|
+| — | Session 21: Bug Fix — Double navigation on last flashcard. submitRating callback in SessionScreen called context.go(sessionComplete) AND build() reacted to isComplete via postFrameCallback, firing context.go() twice. Removed the eager navigate from the onRating callback; build() is now the single navigation owner. | 2026-03-09 | See Session 21 notes |
 | — | Session 20: Bug Fix — Infinite loading screen on device. Two bugs: (1) GoRouter recreated on every build in app.dart, causing nav loop back to splash. (2) Notification permission dialog awaited during init, blocking splash indefinitely. | 2026-03-09 | See Session 20 notes |
 | — | Session 19: Offline UX — ConnectivityNotifier (TCP probe, 15s poll), OfflineBanner (animated, slides on/off), OfflineAwareBody widget, BackupNotifier skips sync when offline with graceful error, OfflineBanner wired to HomeScreen + SettingsScreen | 2026-03-08 | Zero new dependencies |
 | — | Session 18: App icon + splash screen — icon_1024.png (teal W lettermark), icon_foreground_1024.png, all Android mipmap densities, all iOS icon sizes, launch images, flutter_launcher_icons + flutter_native_splash config in pubspec, adaptive icon XML, Android colors.xml + styles.xml updated, iOS LaunchScreen.storyboard updated, CFBundleDisplayName → WordLearn, install_assets.py + wordlearn_assets.zip for one-command install | 2026-03-08 | Run install_assets.py then flutter pub get + dart run flutter_launcher_icons + dart run flutter_native_splash:create |
@@ -102,6 +103,68 @@
 ---
 
 ## Session Notes
+
+### Session 21: Bug Fix — Double navigation on last flashcard (2026-03-09)
+
+**Bug found**
+`SessionScreen` was firing `context.go(AppRoutes.sessionComplete)` **twice** when the user rated the final card:
+
+1. **First call** — inside the `onRating` callback in `_DifficultyButtons`:
+   ```dart
+   ref.read(sessionProvider.notifier).submitRating(rating);
+   setState(() => _revealed = false);
+   final next = ref.read(sessionProvider);
+   if (next.isComplete && mounted) {
+     context.go(AppRoutes.sessionComplete);  // ← call #1
+   }
+   ```
+
+2. **Second call** — in `build()`, which is triggered by the state change from `submitRating`:
+   ```dart
+   if (session.isComplete) {
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+       if (mounted) context.go(AppRoutes.sessionComplete);  // ← call #2
+     });
+     ...
+   }
+   ```
+
+`submitRating` updates `sessionProvider` state synchronously, causing Flutter to schedule a rebuild. The callback's synchronous `context.go` (call #1) fires during the current frame, navigating away. Then the `postFrameCallback` (call #2) fires on the next frame — at this point the widget may still be `mounted` just long enough to fire a second `context.go`, which can corrupt the GoRouter navigation stack or flash an unexpected frame.
+
+**Fix**
+Removed the eager `context.go` from the `onRating` callback entirely. `build()` already handles navigation reactively via `postFrameCallback` — there is no need to navigate in the callback too. The rating callback now only:
+1. Calls `submitRating(rating)` (state update)
+2. Resets `_revealed = false` (local UI state)
+
+`build()` remains the single owner of navigation decisions, consistent with the reactive pattern used throughout the rest of the app.
+
+**File changed**
+```
+MOD  lib/features/session/session_screen.dart   ← removed context.go() from onRating callback
+```
+
+**Before**
+```dart
+onRating: (rating) {
+  ref.read(sessionProvider.notifier).submitRating(rating);
+  setState(() => _revealed = false);
+  final next = ref.read(sessionProvider);
+  if (next.isComplete && mounted) {
+    context.go(AppRoutes.sessionComplete);  // ← removed
+  }
+},
+```
+
+**After**
+```dart
+onRating: (rating) {
+  ref.read(sessionProvider.notifier).submitRating(rating);
+  setState(() => _revealed = false);
+  // Navigation handled reactively by build() via postFrameCallback.
+},
+```
+
+---
 
 ### Session 20: Bug Fix — Infinite Loading Screen on Device (2026-03-09)
 

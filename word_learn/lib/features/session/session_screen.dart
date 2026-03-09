@@ -85,11 +85,14 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 _DifficultyButtons(
                   onRating: (rating) {
                     ref.read(sessionProvider.notifier).submitRating(rating);
+                    // BUG FIX (Session 21): Do NOT navigate here. submitRating
+                    // updates sessionProvider state; the build() method above
+                    // already reacts to isComplete and navigates via
+                    // postFrameCallback. Navigating here AND in build() caused
+                    // a double context.go() to /session/complete on the last
+                    // card, which could interrupt the complete screen's first
+                    // frame or trigger unexpected GoRouter behaviour.
                     setState(() => _revealed = false);
-                    final next = ref.read(sessionProvider);
-                    if (next.isComplete && mounted) {
-                      context.go(AppRoutes.sessionComplete);
-                    }
                   },
                 ),
               ] else
