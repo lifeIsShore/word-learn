@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -45,12 +44,7 @@ class AppRoutes {
   static const String auditSession = '/vault/audit';
   static const String auditComplete = '/vault/audit/complete';
 
-  // ── Route groups used by the redirect guard ──────────────────────────────
-
-  /// Routes that are always accessible — no auth or onboarding required.
   static const _publicRoutes = {splash, auth};
-
-  /// Onboarding routes — accessible only when authenticated but not onboarded.
   static const _onboardingRoutes = {
     onboardingWelcome,
     onboardingBaseLanguage,
@@ -68,29 +62,42 @@ class AppRoutes {
       _onboardingRoutes.any((r) => location.startsWith(r));
 }
 
-/// Creates the app router with Riverpod-aware redirect guards.
+/// Creates the app router.
 ///
-/// Guard logic (evaluated on every navigation):
+/// SESSION 24 FIX — Removed `refreshListenable: _ProviderListenable(ref)`.
 ///
-///   1. AuthStatus.unknown   → still initialising, stay on splash.
-///   2. Unauthenticated      → redirect to /auth unless already on a public route.
-///   3. Authenticated + not onboarded → redirect to /onboarding/welcome
-///      unless already in an onboarding route.
-///   4. Authenticated + onboarded + trying to reach /auth or onboarding
-///      → redirect to /home (user is already set up).
-///   5. Otherwise            → allow navigation as requested.
+/// The _ProviderListenable was calling notifyListeners() every time
+/// AuthStatus changed. This caused a race condition on device:
+///
+///   1. SplashScreen._initApp() runs  (async, ~1-2s)
+///   2. checkStartupAuth() completes — sets AuthStatus.authenticated
+///   3. _ProviderListenable fires notifyListeners() immediately
+///   4. GoRouter re-evaluates redirect: isAuthenticated=true, location=/
+///      Redirect rule 4 fires: "authenticated + splash → allow null" ✓
+///      BUT: redirect rule 4 also has the condition that splash returns null
+///      only when location == AppRoutes.splash. If the timing is slightly off
+///      and the location string already changed, it could redirect to /home
+///      prematurely, while SplashScreen also calls context.go('/home') —
+///      two navigation calls on the same frame → router stack corruption.
+///
+/// The redirect guard is still present for DEEP LINKS and programmatic
+/// navigation (e.g. back-button press trying to reach /auth after login).
+/// But it no longer auto-fires on provider changes, so SplashScreen is the
+/// sole owner of the first navigation.
+///
+/// Auth changes after first boot (sign-in, sign-out) are handled by
+/// direct context.go() calls from the auth screen and home screen.
 GoRouter createAppRouter(WidgetRef ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
-    // Refresh the router whenever auth or onboarding state changes.
-    refreshListenable: _ProviderListenable(ref),
+    // NOTE: No refreshListenable — see doc comment above.
     redirect: (context, state) {
       final location = state.matchedLocation;
-
       final authState = ref.read(authProvider);
       final onboarding = ref.read(onboardingProvider);
 
-      // 1. Still initialising — stay on splash.
+      // 1. Still initialising (unknown) — always stay on splash.
+      //    SplashScreen will navigate once init is done.
       if (authState.status == AuthStatus.unknown) {
         return location == AppRoutes.splash ? null : AppRoutes.splash;
       }
@@ -100,24 +107,22 @@ GoRouter createAppRouter(WidgetRef ref) {
       final isPublic = AppRoutes.isPublic(location);
       final isOnboardingRoute = AppRoutes.isOnboarding(location);
 
-      // 2. Not authenticated → send to auth (unless already on a public route).
+      // 2. Not authenticated → send to auth (guard for deep links / back nav).
       if (!isAuthenticated && !isPublic) {
         return AppRoutes.auth;
       }
 
-      // 3. Authenticated but onboarding not complete → send to onboarding.
+      // 3. Authenticated but not onboarded → send to onboarding.
       if (isAuthenticated && !hasOnboarded && !isOnboardingRoute && !isPublic) {
         return AppRoutes.onboardingWelcome;
       }
 
-      // 4. Authenticated + onboarded → don't allow going back to auth/onboarding.
+      // 4. Authenticated + onboarded → block going back to auth/onboarding.
       if (isAuthenticated && hasOnboarded && (isPublic || isOnboardingRoute)) {
-        // Allow splash to run its own init logic.
-        if (location == AppRoutes.splash) return null;
+        if (location == AppRoutes.splash) return null; // Let splash own init.
         return AppRoutes.home;
       }
 
-      // 5. All good — allow.
       return null;
     },
     routes: <RouteBase>[
@@ -195,19 +200,4 @@ GoRouter createAppRouter(WidgetRef ref) {
       ),
     ],
   );
-}
-
-// ── Listenable bridge ─────────────────────────────────────────────────────────
-// GoRouter's refreshListenable needs a ChangeNotifier.
-// This bridges Riverpod providers into that interface so the router
-// re-evaluates its redirect whenever auth or onboarding state changes.
-
-class _ProviderListenable extends ChangeNotifier {
-  _ProviderListenable(WidgetRef ref) {
-    ref.listen<AuthState>(authProvider, (_, _) => notifyListeners());
-    ref.listen<OnboardingState>(
-      onboardingProvider,
-      (_, _) => notifyListeners(),
-    );
-  }
 }
